@@ -56,7 +56,13 @@ def generate_vtk(t_vals, x):
     # convenient and less messy.
     nodes = [bvtk.Node() for i in range(N)]
     polygon_points = bvtk.PolygonPoints()
-  
+
+    window.AddRenderer(renderer)
+    window.SetSize(800, 800)
+
+    interactor = vtk.vtkRenderWindowInteractor()
+    interactor.SetRenderWindow(window)
+
     y = beam_deflection(t_vals[10])  # grabbing an arbitrary time to create deflected beam state
     for i in range(N):
 
@@ -81,15 +87,10 @@ def generate_vtk(t_vals, x):
         # renderer.AddActor(nodes[i].set_polygon_actor())
         
         
-        # cb = bvtk.vtkUpdate(renderer, t_vals, i, nodes)
-        # interactor.AddObserver('TimerEvent', cb.execute)
-        # cb.timerId = interactor.CreateRepeatingTimer(500)
+    cb = bvtk.vtkUpdate(renderer, t_vals, i, nodes)
+    interactor.AddObserver('TimerEvent', cb.execute)
+    cb.timerId = interactor.CreateRepeatingTimer(500)
 
-    window.AddRenderer(renderer)
-    window.SetSize(800, 800)
-
-    interactor = vtk.vtkRenderWindowInteractor()
-    interactor.SetRenderWindow(window)
     window.Render()
 
     # # Sign up to receive TimerEvent
@@ -99,5 +100,5 @@ def generate_vtk(t_vals, x):
 
 if __name__ == "__main__":
 
-    generate_plot(t_vals, x_vals)
+    # generate_plot(t_vals, x_vals)
     generate_vtk(t_vals, x_vals)

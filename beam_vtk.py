@@ -261,20 +261,21 @@ class vtkUpdate:
         next_node = None
         i = self.x_index
         t = self.t_vals[self.t_index]
-        y = beam.beam_deflection(t)
+        for node in self.nodes:
+            y = beam.beam_deflection(t)
+            node.update_position(self.x_index, y[i], 0)
+            # node.update_polygon_position(x, y, z):
 
-        self.nodes[i].update_position(self.x_index, y[i], 0)
-
-        if i < (len(self.nodes) - 1):
-            self.nodes[i + 1].update_position(self.x_index+1, y[i + 1], 0)
-            next_node = self.nodes[i + 1]
-
-        if self.t_index >= (len(self.t_vals)-1):
-            self.mod = -1
-        if self.t_index < 0:
-            self.mod = 1
-        print(self.t_index)
-        self.t_index += self.mod
+        # if i < (len(self.nodes) - 1):
+        #     self.nodes[i + 1].update_position(self.x_index+1, y[i + 1], 0)
+        #     next_node = self.nodes[i + 1]
+        # 
+        # if self.t_index >= (len(self.t_vals)-1):
+        #     self.mod = -1
+        # if self.t_index < 0:
+        #     self.mod = 1
+        # print(self.t_index)
+        # self.t_index += self.mod
 
         iren = obj
         iren.GetRenderWindow().Render()
