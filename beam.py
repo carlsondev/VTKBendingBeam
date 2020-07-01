@@ -55,13 +55,8 @@ def generate_vtk(t_vals, x):
     # bvtk.Node and bvtk.Line are custom objects to make reuse of mappings/actors
     # convenient and less messy.
     nodes = [bvtk.Node() for i in range(N)]
-
-    window.AddRenderer(renderer)
-    window.SetSize(800, 800)
-
-    interactor = vtk.vtkRenderWindowInteractor()
-    interactor.SetRenderWindow(window)
-
+    polygon_points = bvtk.PolygonPoints()
+  
     y = beam_deflection(t_vals[10])  # grabbing an arbitrary time to create deflected beam state
     for i in range(N):
 
@@ -70,13 +65,31 @@ def generate_vtk(t_vals, x):
             #Updates position ahead of time to render next node height
             nodes[i + 1].update_position(x[i + 1], y[i + 1], 0)
             next_node = nodes[i + 1]
+        
+        # updating the polygon object point cloud
+        if i == N-1:
+            polygon_points.add_points(nodes[i-1], nodes[i], key='last')
+        else:
+            polygon_points.add_points(nodes[i], nodes[i+1])
 
         #Generates all node specific actors and adds to renderer
-        nodes[i].add_actors_to_renderer(renderer, next_node, x[i], y[i])
+        nodes[i].update_position(x[i], y[i], 0) # I call update_position first before creating the polygon.
+                                                # This way, the polygon is initialized with the initial correct node position
+        nodes[i].set_polygon_point_connections(polygon_points)
+        nodes[i].add_actors_to_renderer(renderer, next_node)
+        
+        # renderer.AddActor(nodes[i].set_polygon_actor())
+        
+        
         # cb = bvtk.vtkUpdate(renderer, t_vals, i, nodes)
         # interactor.AddObserver('TimerEvent', cb.execute)
         # cb.timerId = interactor.CreateRepeatingTimer(500)
 
+    window.AddRenderer(renderer)
+    window.SetSize(800, 800)
+
+    interactor = vtk.vtkRenderWindowInteractor()
+    interactor.SetRenderWindow(window)
     window.Render()
 
     # # Sign up to receive TimerEvent
