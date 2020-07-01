@@ -45,54 +45,38 @@ class Node(object):
         # is really a shell (4 sides) except for
         # end points. But it is valid for now.
 
-    def get_actor(self):  # optional: you can also use setter/getter decorators if you like
+    #Get node point actor
+    def get_actor(self):
         return self.__actor
 
+    # Generates all node specific actors and adds to renderer
     def add_actors_to_renderer(self, renderer, next_node, x_val, y_val):
         node_actor = self.get_actor()
         renderer.AddActor(node_actor)
 
         self.update_position(x_val, y_val, 0)
 
+        #Create poly actor for back side and add
         back_side_poly = self.get_side_poly_actor(next_node, -1)
         renderer.AddActor(back_side_poly)
 
+        # Create poly actor for front side and add
         front_side_poly = self.get_side_poly_actor(next_node, 1)
         renderer.AddActor(front_side_poly)
 
-        bottom_poly = self.get_filled_depth_poly(next_node, 0)
+        # Create poly actor for bottom side and add
+        bottom_poly = self.get_filled_top_depth_poly(next_node, 0)
         renderer.AddActor(bottom_poly)
 
-        top_poly = self.get_filled_depth_poly(next_node, self.height)
+        # Create poly actor for top side and add
+        top_poly = self.get_filled_top_depth_poly(next_node, self.height)
         renderer.AddActor(top_poly)
 
-        side_poly = self.get_back_side_actor()
+        # Create poly actor for side and add
+        side_poly = self.get_side_quad_actor()
         renderer.AddActor(side_poly)
 
-    def get_depth_line_actor(self, dy=0):
-        line_actor = vtk.vtkActor()
-
-        x = self.__actor.GetCenter()[0]
-        y = self.__actor.GetCenter()[1]
-
-        p0 = [x, y+dy, -self.boxDepth]
-        p1 = [x, y+dy, self.boxDepth]
-
-        line = vtk.vtkLineSource()
-        line.SetPoint1(p0)
-        line.SetPoint2(p1)
-
-        # Add the colors we created to the colors array
-
-        mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputConnection(line.GetOutputPort())
-
-        line_actor.SetMapper(mapper)
-        line_actor.GetProperty().SetLineWidth(2)
-        line_actor.GetProperty().SetColor(0, 1, 0)
-
-        return line_actor
-
+    #Get front or back side quad actor
     def get_side_poly_actor(self, nextNode, zMod):
 
         if nextNode is None:
@@ -102,7 +86,7 @@ class Node(object):
         next_node_center = nextNode.get_actor().GetCenter()
 
         depth = self.boxDepth * zMod
-
+        #Side quad points
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(4)
         points.SetPoint(0, node_center[0], node_center[1], depth)
@@ -112,7 +96,8 @@ class Node(object):
 
         return self.get_quad_filled_actor(points)
 
-    def get_filled_depth_poly(self, next_node, height):
+    #Get quad actor for top
+    def get_filled_top_depth_poly(self, next_node, height):
 
         if next_node is None:
             return
@@ -120,6 +105,7 @@ class Node(object):
         node_center = self.get_actor().GetCenter()
         next_node_center = next_node.get_actor().GetCenter()
 
+        #Top Quad Points
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(4)
         points.SetPoint(0, node_center[0], height+node_center[1], self.boxDepth)
@@ -129,12 +115,14 @@ class Node(object):
 
         return self.get_quad_filled_actor(points)
 
-    def get_back_side_actor(self):
+    #Get actor for side quad
+    def get_side_quad_actor(self):
 
         node_center = self.get_actor().GetCenter()
         node_x = node_center[0]
         node_y = node_center[1]
 
+        #Side quad points
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(4)
         points.SetPoint(0,node_x , node_y, self.boxDepth)
@@ -144,6 +132,7 @@ class Node(object):
 
         return self.get_quad_filled_actor(points)
 
+    #Return quad actor with either wireframe or filled based on "transparent" flag
     def get_quad_filled_actor(self, points):
         poly_actor = vtk.vtkActor()
 
@@ -168,8 +157,6 @@ class Node(object):
         lines.InsertCellPoint(3)
         lines.InsertCellPoint(0)
 
-        # Add the polygon to a list of polygons
-
         polygons = vtk.vtkCellArray()
         polygons.InsertNextCell(polygon)
 
@@ -190,34 +177,6 @@ class Node(object):
     def update_position(self, x, y, z):
         self.__transform.Identity()
         self.__transform.Translate(x, y, z)
-
-class Line(object):
-    """
-    For connections between nodes as a line
-    """
-
-    def __init__(self):
-        # Notice the similiarities with the above:
-        # 1) we have a source, a mapper and an actor
-        # 2) we also need to connect a mapper to a source
-        # 3) an actor is connected to a mapper
-        self.__line = vtk.vtkLineSource()
-        self.__mapper = vtk.vtkPolyDataMapper()
-        self.__actor = vtk.vtkActor()
-        self.__mapper.SetInputConnection(self.__line.GetOutputPort())
-        self.__actor.SetMapper(self.__mapper)
-        self.__actor.GetProperty().SetLineWidth(1)
-
-    def get_actor(self):
-        return self.__actor
-
-    def update_position(self, node, point=None):
-        if point == 1:
-            self.__line.SetPoint1(node.get_actor().GetCenter())
-        elif point == 2:
-            self.__line.SetPoint2(node.get_actor().GetCenter())
-        else:
-            raise (ValueError, 'Valid integer values for point is 1 or 2')
 
 class vtkUpdate:
     def __init__(self, renderer,t_vals, x_index, nodes):

@@ -10,10 +10,10 @@ actors = defaultdict(list)
 # @ben: here are alternative mode coefficients you can try out:
 #       0.59686 , 1.49418,  2.5 , 3.4999
 mode = 3.4999
-omega = 1.0
+omega = 10.0
 x_vals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 t_vals = np.linspace(0, 2 * math.pi, 20).tolist()
-transparent = False
+transparent = True
 
 
 def displacement(mode, x):
@@ -55,7 +55,6 @@ def generate_vtk(t_vals, x):
     # bvtk.Node and bvtk.Line are custom objects to make reuse of mappings/actors
     # convenient and less messy.
     nodes = [bvtk.Node() for i in range(N)]
-    lines = [bvtk.Line() for i in range(N - 1)]  # one less line than node
 
     window.AddRenderer(renderer)
     window.SetSize(800, 800)
@@ -68,21 +67,15 @@ def generate_vtk(t_vals, x):
 
         next_node = None
         if i < (N - 1):
+            #Updates position ahead of time to render next node height
             nodes[i + 1].update_position(x[i + 1], y[i + 1], 0)
             next_node = nodes[i + 1]
 
+        #Generates all node specific actors and adds to renderer
         nodes[i].add_actors_to_renderer(renderer, next_node, x[i], y[i])
         # cb = bvtk.vtkUpdate(renderer, t_vals, i, nodes)
         # interactor.AddObserver('TimerEvent', cb.execute)
         # cb.timerId = interactor.CreateRepeatingTimer(500)
-
-    for i in range(N - 1):
-        line_actor = lines[i].get_actor()
-        renderer.AddActor(line_actor)
-        actors[i].append(line_actor)
-
-        lines[i].update_position(nodes[i], 1)
-        lines[i].update_position(nodes[i + 1], 2)
 
     window.Render()
 
