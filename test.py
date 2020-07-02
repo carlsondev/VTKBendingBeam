@@ -1,15 +1,6 @@
 import vtk
 import random
 
-import sys
-
-sys.path.append("./modules")
-
-R = 2
-botx = -2
-topx = 2
-topz = 2
-
 class vtkTimerCallback():
     def __init__(self):
         self.timer_count = 0
@@ -88,58 +79,32 @@ class vtkTimerCallback():
 
 
 def main():
-    # Create a sphere
-    sphereSource = vtk.vtkSphereSource()
+    ren = vtk.vtkRenderer()
+    renWin = vtk.vtkRenderWindow()
+    renWin.AddRenderer(ren)
 
-    cx = random.uniform(botx + R, topx - R)
-    cy = random.uniform(boty + R, topy - R)
-    cz = topz - R
+    # create a renderwindowinteractor
+    iren = vtk.vtkRenderWindowInteractor()
+    iren.SetRenderWindow(renWin)
 
-    sphereSource.SetCenter(cx, cy, cz)
-    sphereSource.SetRadius(R)
+    # create cube
+    cube = vtk.vtkCubeSource()
 
-    # Setup a renderer, render window, and interactor
-    renderer = vtk.vtkRenderer()
-    renderWindow = vtk.vtkRenderWindow()
-    # renderWindow.SetWindowName("Test")
+    # mapper
+    cubeMapper = vtk.vtkPolyDataMapper()
+    cubeMapper.SetInput(cube.GetOutput())
 
-    renderWindow.AddRenderer(renderer);
-    renderWindowInteractor = vtk.vtkRenderWindowInteractor()
-    renderWindowInteractor.SetRenderWindow(renderWindow)
+    # actor
+    cubeActor = vtk.vtkActor()
+    cubeActor.SetMapper(cubeMapper)
 
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputConnection(sphereSource.GetOutputPort())
-    sactor = vtk.vtkActor()
-    sactor.SetMapper(mapper)
-    renderer.AddActor(sactor)
+    # assign actor to the renderer
+    ren.AddActor(cubeActor)
 
-    # add cube
-    sources = []
-
-    addcube_to_source(sources, botx, boty, botz, \
-                      topx, topy, topz)
-
-    for s in sources:
-        mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputConnection(s.GetOutputPort())
-        actor = vtk.vtkActor()
-        actor.SetMapper(mapper)
-        renderer.AddActor(actor)
-
-    # Render and interact
-    renderWindow.Render()
-
-    # Initialize must be called prior to creating timer events.
-    renderWindowInteractor.Initialize()
-
-    # Sign up to receive TimerEvent
-    cb = vtkTimerCallback()
-    cb.actors.append(sactor)
-    renderWindowInteractor.AddObserver('TimerEvent', cb.execute)
-    timerId = renderWindowInteractor.CreateRepeatingTimer(100);
-
-    # start the interaction and timer
-    renderWindowInteractor.Start()
+    # enable user interface interactor
+    iren.Initialize()
+    renWin.Render()
+    iren.Start()
 
 
 if __name__ == '__main__':

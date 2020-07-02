@@ -9,11 +9,10 @@ actors = defaultdict(list)
 
 # @ben: here are alternative mode coefficients you can try out:
 #       0.59686 , 1.49418,  2.5 , 3.4999
-mode = 3.4999
-omega = 10.0
+mode = 1.49418
+omega = 1.0
 x_vals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 t_vals = np.linspace(0, 2 * math.pi, 20).tolist()
-transparent = True
 
 
 def displacement(mode, x):
@@ -65,17 +64,19 @@ def generate_vtk(t_vals, x):
     y = beam_deflection(t_vals[10])  # grabbing an arbitrary time to create deflected beam state
     for i in range(N):
 
-        next_node = None
         if i < (N - 1):
             #Updates position ahead of time to render next node height
             nodes[i + 1].update_position(x[i + 1], y[i + 1], 0)
             next_node = nodes[i + 1]
+        else:
+            next_node = nodes[i-1]
 
         #Generates all node specific actors and adds to renderer
-        nodes[i].add_actors_to_renderer(renderer, next_node, x[i], y[i])
-        # cb = bvtk.vtkUpdate(renderer, t_vals, i, nodes)
-        # interactor.AddObserver('TimerEvent', cb.execute)
-        # cb.timerId = interactor.CreateRepeatingTimer(500)
+        nodes[i].add_poly_actor_to_renderer(renderer, next_node, x[i], y[i], )
+
+    cb = bvtk.vtkUpdate(renderer, t_vals, 0, nodes)
+    interactor.AddObserver('TimerEvent', cb.execute)
+    cb.timerId = interactor.CreateRepeatingTimer(500)
 
     window.Render()
 
