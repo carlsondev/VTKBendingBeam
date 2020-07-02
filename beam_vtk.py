@@ -215,19 +215,15 @@ class Node(object):
 
 
 class vtkUpdate:
-    def __init__(self, render_window, t_vals, x_index, nodes):
-        self.t_vals = t_vals
+    def __init__(self, render_window, x_index, nodes):
         self.x_index = x_index
-        self.t_index = 0
         self.nodes = nodes
-        self.mod = 1
         self.ren_window = render_window
 
     def execute(self):
         next_node = None
         i = self.x_index
-        t = self.t_vals[self.t_index]
-        y = beam.beam_deflection(t)
+        y = beam.beam_deflection(beam.current_t_val)
         for i in range(len(self.nodes)):
             node = self.nodes[i]
             node.update_position(i, y[i], 0)
@@ -236,13 +232,7 @@ class vtkUpdate:
             if i < (len(self.nodes) - 1):
                 self.nodes[i + 1].update_position(i + 1, y[i + 1], 0)
                 next_node = self.nodes[i + 1]
-
-        # Alternate between t-values
-        if self.t_index >= (len(self.t_vals) - 1):
-            self.mod = -1
-        if self.t_index < 0:
-            self.mod = 1
-        print("Current Time: ", t, ":", self.t_index)
-        self.t_index += self.mod
+        beam.current_t_val+=beam.t_val_step
+        print("Current Time: ", beam.current_t_val)
 
         self.ren_window.Render()

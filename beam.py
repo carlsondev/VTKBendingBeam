@@ -15,7 +15,9 @@ actors = defaultdict(list)
 mode = 1.49418
 omega = 1.0
 x_vals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-t_vals = np.linspace(0, 2 * math.pi, 20).tolist()
+t_vals = np.linspace(0, 4 * math.pi, 40).tolist()
+t_val_step = (2 * math.pi)/40
+current_t_val = 0
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -87,7 +89,7 @@ def generate_vtk(t_vals, x):
     # convenient and less messy.
     nodes = [bvtk.Node() for i in range(N)]
 
-    y = beam_deflection(t_vals[10])  # grabbing an arbitrary time to create deflected beam state
+    y = beam_deflection(0)  # grabbing an arbitrary time to create deflected beam state
     for i in range(N):
 
         if i < (N - 1):
@@ -103,7 +105,7 @@ def generate_vtk(t_vals, x):
 
     main_window.window.Render()
 
-    cb = bvtk.vtkUpdate(main_window.window, t_vals, 0, nodes)
+    cb = bvtk.vtkUpdate(main_window.window, 0, nodes)
     # main_window.interactor.AddObserver('TimerEvent', cb.execute)
     # cb.timerId = main_window.interactor.CreateRepeatingTimer(150)
 
