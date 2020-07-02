@@ -202,16 +202,16 @@ class Node(object):
 
     def update_polygon_position(self, y):
         poly_actor_center = self.__polygon_actor.GetCenter()
-        actor_x = poly_actor_center[0]
-        actor_z = poly_actor_center[2]
+        actor_y = poly_actor_center[1]
 
         self.__polygon_transform.Identity()
-        self.__polygon_transform.Translate(actor_x, y, actor_z)
+        self.__polygon_transform.Translate(0, y-actor_y, 0)
         self.__polygon_filter.Update()
 
         for id in self.__indices:
             transformed_point = self.__polygon_filter.GetOutput().GetPoints().GetPoint(id)
             self.__polyData.GetPoints().SetPoint(id, transformed_point)
+            self.__points.GetData().Modified()
 
 
 class vtkUpdate:
@@ -228,7 +228,7 @@ class vtkUpdate:
         i = self.x_index
         t = self.t_vals[self.t_index]
         y = beam.beam_deflection(t)
-        for i in range(len(self.nodes) - 1):
+        for i in range(len(self.nodes)):
             node = self.nodes[i]
             node.update_position(i, y[i], 0)
             node.update_polygon_position(y[i])

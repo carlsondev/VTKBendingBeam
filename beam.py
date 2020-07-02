@@ -74,11 +74,12 @@ def generate_vtk(t_vals, x):
         #Generates all node specific actors and adds to renderer
         nodes[i].add_poly_actor_to_renderer(renderer, next_node, x[i], y[i], )
 
-    cb = bvtk.vtkUpdate(renderer, t_vals, 0, nodes)
-    interactor.AddObserver('TimerEvent', cb.execute)
-    cb.timerId = interactor.CreateRepeatingTimer(500)
 
     window.Render()
+
+    cb = bvtk.vtkUpdate(renderer, t_vals, 0, nodes)
+    interactor.AddObserver('TimerEvent', cb.execute)
+    cb.timerId = interactor.CreateRepeatingTimer(100)
 
     # # Sign up to receive TimerEvent
 
