@@ -54,6 +54,7 @@ def generate_vtk(t_vals, x):
     # bvtk.Node and bvtk.Line are custom objects to make reuse of mappings/actors
     # convenient and less messy.
     nodes = [bvtk.Node() for i in range(N)]
+    polygon_points = bvtk.PolygonPoints()
 
     window.AddRenderer(renderer)
     window.SetSize(800, 800)
@@ -61,31 +62,33 @@ def generate_vtk(t_vals, x):
     interactor = vtk.vtkRenderWindowInteractor()
     interactor.SetRenderWindow(window)
 
-    y = beam_deflection(t_vals[10])  # grabbing an arbitrary time to create deflected beam state
-    for i in range(N):
-
-        if i < (N - 1):
-            #Updates position ahead of time to render next node height
-            nodes[i + 1].update_position(x[i + 1], y[i + 1], 0)
-            next_node = nodes[i + 1]
+    # y = beam_deflection(t_vals[10])  # grabbing an arbitrary time to create deflected beam state
+    for i,node in enumerate(nodes): # first we need to update the node position to properly place them
+        node.update_position(x[i], 0, 0)
+        
+    for i,node in enumerate(nodes): # then we create the polygon object...
+        if i == 0:
+            indices = polygon_points.add_points(nodes[0], nodes[1], key='first')
+        elif i == N-1:
+            indices = polygon_points.add_points(nodes[i-1], nodes[i], key='last')
         else:
-            next_node = nodes[i-1]
-
+            indices = polygon_points.add_points(nodes[i-1], nodes[i])
+        node.set_indices(indices)
+        node.set_polygon_point_connections(polygon_points)
+        renderer.AddActor(node.get_actor())
+        renderer.AddActor(node.get_poly_actor())
         #Generates all node specific actors and adds to renderer
-        nodes[i].add_poly_actor_to_renderer(renderer, next_node, x[i], y[i], )
-
-    cb = bvtk.vtkUpdate(renderer, t_vals, 0, nodes)
-    interactor.AddObserver('TimerEvent', cb.execute)
-    cb.timerId = interactor.CreateRepeatingTimer(500)
+        # nodes[i].add_poly_actor_to_renderer(renderer, next_node, x[i], y[i], )
 
     window.Render()
-
-    # # Sign up to receive TimerEvent
+    
+    cb = bvtk.vtkUpdate(mode, nodes, polygon_points)
+    interactor.AddObserver('TimerEvent', cb.execute)
+    timerId = interactor.CreateRepeatingTimer(100)
 
     interactor.Start()
 
 
-if __name__ == "__main__":
-
-    generate_plot(t_vals, x_vals)
+if __name__ == '__main__':
+    # generate_plot(t_vals, x_vals)
     generate_vtk(t_vals, x_vals)

@@ -13,8 +13,7 @@ class Node(object):
     num_points_per_poly = 4
 
     def __init__(self):
-
-        self.__polyData = vtk.vtkPolyData()
+        # self.__polyData = vtk.vtkPolyData()
         self.__sphere = vtk.vtkSphereSource()
         self.__mapper = vtk.vtkPolyDataMapper()
         self.__transform = vtk.vtkTransform()
@@ -44,7 +43,8 @@ class Node(object):
         self.__polygon_filter = vtk.vtkTransformPolyDataFilter()
         self.__polygon_transform = vtk.vtkTransform()
         self.__points = vtk.vtkPoints()
-        self.__polygons = vtk.vtkCellArray()  # we have 6 sides to each beam box.
+        self.__polygon = [vtk.vtkPolygon() for i in range(1)]
+        # self.__polygons = vtk.vtkCellArray()  # we have 6 sides to each beam box.
         self.__indices = []
         self.__lines = vtk.vtkCellArray()
         # This is overgeneralized because a beam
@@ -54,196 +54,101 @@ class Node(object):
     # Get node point actor
     def get_actor(self):
         return self.__actor
+        
+    def get_poly_actor(self):
+        return self.__polygon_actor
 
-    # Generates all node specific actors and adds to renderer
-    def add_poly_actor_to_renderer(self, renderer, next_node, x_val, y_val):
-        node_actor = self.get_actor()
-        renderer.AddActor(node_actor)
+    def set_indices(self, idx):
+        self.__indices = idx
+        
+    def set_polygon_point_connections(self, polygon_points):
+        # self.__indices = polygon_points.index_set
+        # This creates a flat plane
+        self.__polygon[0].GetPointIds().SetNumberOfIds(4)
+        self.__polygon[0].GetPointIds().SetId(0, self.__indices[0])  # 0 + n
+        self.__polygon[0].GetPointIds().SetId(1, self.__indices[1])  # 1 + n
+        self.__polygon[0].GetPointIds().SetId(2, self.__indices[2])  # 2 + n
+        self.__polygon[0].GetPointIds().SetId(3, self.__indices[3])  # 3 + n
+        self.__cell.InsertNextCell(self.__polygon[0])
 
-        self.update_position(x_val, y_val, 0)
-
-        # Add back side quad data
-        self.add_fb_quad_data(next_node, -1)
-
-        # Add front side quad data
-        self.add_fb_quad_data(next_node, 1)
-
-        # Add bottom side quad data
-        self.add_top_quad_data(next_node, -self.height)
-
-        # Add top side quad data
-        self.add_top_quad_data(next_node, self.height)
-
-        # Add left side quad data
-        self.add_lr_side_quad_data(next_node, -1)
-
-        # Add right side quad data
-        self.add_lr_side_quad_data(next_node, 1)
-
-        # Update nodes polyData
-        self.__polyData.SetLines(self.__lines)
-        self.__polyData.SetPolys(self.__polygons)
-        self.__polyData.SetPoints(self.__points)
-
-        # Set Transformation/Filter/Mapper properties
-        self.__polygon_mapper.SetInputData(self.__polyData)
-        self.__polygon_filter.SetInputData(self.__polyData)
-
+        self.__data.SetPoints(polygon_points.points)
+        self.__data.SetPolys(self.__cell)
+        self.__polygon_mapper.SetInputData(self.__data)
+        self.__polygon_filter.SetInputData(self.__data)
         self.__polygon_filter.SetTransform(self.__polygon_transform)
         self.__polygon_actor.SetMapper(self.__polygon_mapper)
-        self.__polygon_actor.GetProperty().SetLineWidth(2)
         self.__polygon_actor.GetProperty().SetColor(0, 1, 0)
-
-        renderer.AddActor(self.__polygon_actor)
-
-    # Add front or back side quad data
-    def add_fb_quad_data(self, nextNode, zMod):
-
-        node_center = self.get_actor().GetCenter()
-        node_x = node_center[0]
-        node_y = node_center[1]
-
-        next_node_center = nextNode.get_actor().GetCenter()
-        dx = math.fabs(next_node_center[0] - node_x) / 2
-
-        depth = self.boxDepth * zMod
-        # Side quad points
-        points = vtk.vtkPoints()
-        points.SetNumberOfPoints(4)
-        points.SetPoint(0, node_x - dx, node_y - self.height, depth)
-        points.SetPoint(1, node_x + dx, node_y - self.height, depth)
-        points.SetPoint(2, node_x + dx, node_y + self.height, depth)
-        points.SetPoint(3, node_x - dx, node_y + self.height, depth)
-
-        self.add_quad_data(points)
-
-    # Add top quad data
-    def add_top_quad_data(self, next_node, height):
-
-        node_center = self.get_actor().GetCenter()
-        next_node_center = next_node.get_actor().GetCenter()
-
-        node_x = node_center[0]
-        node_y = node_center[1]
-
-        dx = math.fabs(next_node_center[0] - node_x) / 2
-
-        # Top Quad Points
-        points = vtk.vtkPoints()
-        points.SetNumberOfPoints(4)
-        points.SetPoint(0, node_x - dx, height + node_y, self.boxDepth)
-        points.SetPoint(1, node_x + dx, height + node_y, self.boxDepth)
-        points.SetPoint(2, node_x + dx, height + node_y, -self.boxDepth)
-        points.SetPoint(3, node_x - dx, height + node_y, -self.boxDepth)
-
-        self.add_quad_data(points)
-
-    # Get actor for left or right side quad
-    def add_lr_side_quad_data(self, next_node, dx_mod):
-
-        node_center = self.get_actor().GetCenter()
-        next_node_center = next_node.get_actor().GetCenter()
-
-        node_x = node_center[0]
-        node_y = node_center[1]
-
-        dx = math.fabs((next_node_center[0] - node_x) / 2) * dx_mod
-
-        # Side quad points
-        points = vtk.vtkPoints()
-        points.SetNumberOfPoints(4)
-        points.SetPoint(0, node_x + dx, node_y - self.height, self.boxDepth)
-        points.SetPoint(1, node_x + dx, node_y + self.height, self.boxDepth)
-        points.SetPoint(2, node_x + dx, node_y + self.height, -self.boxDepth)
-        points.SetPoint(3, node_x + dx, node_y - self.height, -self.boxDepth)
-
-        self.add_quad_data(points)
-
-    # Return quad actor with either wireframe or filled based on "transparent" flag
-    def add_quad_data(self, points):
-
-        # Each point index is ((the index of its poly) * (num points in poly)) + (relative id of point)
-        poly_index = self.__polygons.GetNumberOfCells()
-
-        id_base = poly_index * self.num_points_per_poly
-
-        # Generates ID Lists for adding quad points
-        point_id_list = vtk.vtkIdList()
-        rel_id_list = vtk.vtkIdList()
-        for rel_id in range(self.num_points_per_poly):
-            rel_id_list.InsertNextId(rel_id)
-            index = id_base + rel_id
-            self.__indices.append(index)
-            point_id_list.InsertNextId(index)
-
-        # Insert quad points to node points
-        self.__points.InsertPoints(point_id_list, rel_id_list, points)
-
-        # Create the polygon
-        polygon = vtk.vtkPolygon()
-        polygon.GetPointIds().SetNumberOfIds(self.num_points_per_poly)  # make a quad
-        polygon.GetPointIds().SetId(0, id_base + 0)
-        polygon.GetPointIds().SetId(1, id_base + 1)
-        polygon.GetPointIds().SetId(2, id_base + 2)
-        polygon.GetPointIds().SetId(3, id_base + 3)
-
-        self.__lines.InsertNextCell(self.num_points_per_poly + 1)
-        self.__lines.InsertCellPoint(id_base + 0)
-        self.__lines.InsertCellPoint(id_base + 1)
-        self.__lines.InsertCellPoint(id_base + 2)
-        self.__lines.InsertCellPoint(id_base + 3)
-        self.__lines.InsertCellPoint(id_base + 0)
-
-        self.__polygons.InsertNextCell(polygon)
-
+        
     def update_position(self, x, y, z):
         self.__transform.Identity()
         self.__transform.Translate(x, y, z)
 
-    def update_polygon_position(self, y):
+    def update_polygon_position(self, x, y, z):
         poly_actor_center = self.__polygon_actor.GetCenter()
-        actor_x = poly_actor_center[0]
-        actor_z = poly_actor_center[2]
-
+        # actor_x = poly_actor_center[0]
+        # actor_z = poly_actor_center[2]
         self.__polygon_transform.Identity()
-        self.__polygon_transform.Translate(actor_x, y, actor_z)
+        self.__polygon_transform.Translate(x, y-poly_actor_center[1], z)
         self.__polygon_filter.Update()
-
         for id in self.__indices:
             transformed_point = self.__polygon_filter.GetOutput().GetPoints().GetPoint(id)
-            self.__polyData.GetPoints().SetPoint(id, transformed_point)
+            self.__data.GetPoints().SetPoint(id, transformed_point)
 
+
+class PolygonPoints():
+    '''
+    Object encapsulating the polygon point cloud. This behaves like a container
+    '''
+    def __init__(self):
+        self.__points = vtk.vtkPoints()
+        self.__height = 0.0
+        self.__width = 1.0
+        
+    @property
+    def points(self):
+        return self.__points
+    
+    def update_points(self):
+        self.__points.GetData().Modified()
+        
+    def add_points(self, node1, node2, key=None):
+        n = self.__points.GetNumberOfPoints()
+        r1 = node1.get_actor().GetCenter() # vilolates Law of Demeter. However, it's a concise description of what is going on
+        r2 = node2.get_actor().GetCenter()
+        if key == 'first':
+            dx = r2[0] - r1[0]
+            start_point = r1[0] 
+            end_point = r1[0] + dx/2.0
+        elif key == 'last':
+            dx = r2[0] - r1[0]
+            start_point = r1[0] - dx/2.0
+            end_point = r2[0] 
+        else:
+            dx = r2[0] - r1[0]
+            start_point = r2[0] - dx/2.0
+            end_point = r2[0] + dx/2.0
+        self.__points.InsertNextPoint(start_point, self.__height,  self.__width)
+        self.__points.InsertNextPoint(start_point, self.__height, -self.__width)
+        self.__points.InsertNextPoint(end_point,   self.__height, -self.__width)
+        self.__points.InsertNextPoint(end_point,   self.__height,  self.__width)
+        return [n, n+1, n+2, n+3]
+        
 
 class vtkUpdate:
-    def __init__(self, renderer, t_vals, x_index, nodes):
-        self.renderer = renderer
-        self.t_vals = t_vals
-        self.x_index = x_index
-        self.t_index = 0
-        self.nodes = nodes
-        self.mod = 1
-
+    def __init__(self, mode, nodes, polygon_points):
+        self.__nodes = nodes
+        self.__points = polygon_points
+        self.__mode = mode
+        self.__timer = 0.0
+        self.__omega = 1.0
+    
     def execute(self, obj, event):
-        next_node = None
-        i = self.x_index
-        t = self.t_vals[self.t_index]
-        y = beam.beam_deflection(t)
-        for i in range(len(self.nodes) - 1):
-            node = self.nodes[i]
-            node.update_position(i, y[i], 0)
-            node.update_polygon_position(y[i])
-
-            if i < (len(self.nodes) - 1):
-                self.nodes[i + 1].update_position(i + 1, y[i + 1], 0)
-                next_node = self.nodes[i + 1]
-
-        # Alternate between t-values
-        if self.t_index >= (len(self.t_vals) - 1):
-            self.mod = -1
-        if self.t_index < 0:
-            self.mod = 1
-        print("Current Time: ", t, ":", self.t_index)
-        self.t_index += self.mod
-
+        for i, node in enumerate(self.__nodes):
+            r = node.get_actor().GetCenter()
+            deflection = self.__timer/100
+            node.update_position(r[0], deflection, r[2])
+            node.update_polygon_position(0, deflection, 0)
+        self.__points.update_points()
         iren = obj
         iren.GetRenderWindow().Render()
+        self.__timer += 10
