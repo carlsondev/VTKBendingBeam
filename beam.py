@@ -1,9 +1,12 @@
 import math
 import vtk
+import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import beam_vtk as bvtk
 from collections import defaultdict
+from PyQt5 import QtCore, QtWidgets
+from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 actors = defaultdict(list)
 
@@ -13,6 +16,36 @@ mode = 1.49418
 omega = 1.0
 x_vals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 t_vals = np.linspace(0, 2 * math.pi, 20).tolist()
+
+
+class MainWindow(QtWidgets.QMainWindow):
+    renderer = None
+    interactor = None
+    window = None
+
+    def __init__(self, parent=None):
+        QtWidgets.QMainWindow.__init__(self, parent)
+
+        self.frame = QtWidgets.QFrame()
+
+        self.vl = QtWidgets.QVBoxLayout()
+        self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
+        self.vl.addWidget(self.vtkWidget)
+
+        self.renderer = vtk.vtkRenderer()
+        self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
+        self.interactor = self.vtkWidget.GetRenderWindow().GetInteractor()
+        self.window = self.vtkWidget.GetRenderWindow()
+
+        self.frame.setLayout(self.vl)
+        self.setCentralWidget(self.frame)
+
+        self.interactor.Initialize()
+        self.interactor.Start()
+        self.show()
+
+        # Add actors
+
 
 
 def displacement(mode, x):
@@ -46,20 +79,13 @@ def generate_plot(t, x):
 
 def generate_vtk(t_vals, x):
     N = len(x)
+    app = QtWidgets.QApplication(sys.argv)
 
-    # setup the VTK environment (pipeline objects)
-    renderer = vtk.vtkRenderer()
-    window = vtk.vtkRenderWindow()
+    main_window = MainWindow()
 
     # bvtk.Node and bvtk.Line are custom objects to make reuse of mappings/actors
     # convenient and less messy.
     nodes = [bvtk.Node() for i in range(N)]
-
-    window.AddRenderer(renderer)
-    window.SetSize(800, 800)
-
-    interactor = vtk.vtkRenderWindowInteractor()
-    interactor.SetRenderWindow(window)
 
     y = beam_deflection(t_vals[10])  # grabbing an arbitrary time to create deflected beam state
     for i in range(N):
@@ -72,18 +98,23 @@ def generate_vtk(t_vals, x):
             next_node = nodes[i-1]
 
         #Generates all node specific actors and adds to renderer
-        nodes[i].add_poly_actor_to_renderer(renderer, next_node, x[i], y[i], )
+        nodes[i].add_poly_actor_to_renderer(main_window.renderer, next_node, x[i], y[i], )
 
 
-    window.Render()
+    main_window.window.Render()
 
-    cb = bvtk.vtkUpdate(renderer, t_vals, 0, nodes)
-    interactor.AddObserver('TimerEvent', cb.execute)
-    cb.timerId = interactor.CreateRepeatingTimer(100)
+    cb = bvtk.vtkUpdate(main_window.window, t_vals, 0, nodes)
+    # main_window.interactor.AddObserver('TimerEvent', cb.execute)
+    # cb.timerId = main_window.interactor.CreateRepeatingTimer(150)
+
+    timer = QtCore.QTimer()
+    timer.timeout.connect(cb.execute)
+    timer.start(100)
 
     # # Sign up to receive TimerEvent
+    main_window.renderer.ResetCamera()
 
-    interactor.Start()
+    sys.exit(app.exec_())
 
 
 if __name__ == "__main__":

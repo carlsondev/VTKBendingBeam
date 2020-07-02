@@ -1,111 +1,54 @@
+import sys
 import vtk
-import random
-
-class vtkTimerCallback():
-    def __init__(self):
-        self.timer_count = 0
-        self.actors = []
-
-    def execute(self, obj, event):
-        iren = obj
-        wren = iren.GetRenderWindow()
-        renderer = wren.GetRenderers().GetFirstRenderer()
-
-        # print self.timer_count
-        x, y, z = self.actors[0].GetCenter()
-
-        if ((z - R) > botx):
-            z = z - R
-
-            print
-            x, y, z
-
-            renderer.RemoveActor(self.actors[0])
-            self.actors.pop()
-
-            sphereSource = vtk.vtkSphereSource()
-            sphereSource.SetCenter(x, y, z)
-            sphereSource.SetRadius(R)
-
-            # Create a mapper and actor
-            mapper = vtk.vtkPolyDataMapper()
-            mapper.SetInputConnection(sphereSource.GetOutputPort())
-            self.actors.append(vtk.vtkActor())
-            self.actors[0].SetMapper(mapper)
-
-            renderer.AddActor(self.actors[0])
-        else:
-            print
-            len(self.actors)
-
-            if (len(self.actors) == 1):
-                cx = x
-                cy = y
-                cz = topz - R
-
-                sphereSource = vtk.vtkSphereSource()
-                sphereSource.SetCenter(cx, cy, cz)
-                sphereSource.SetRadius(R)
-
-                # Create a mapper and actor
-                mapper = vtk.vtkPolyDataMapper()
-                mapper.SetInputConnection(sphereSource.GetOutputPort())
-                self.actors.append(vtk.vtkActor())
-                self.actors[1].SetMapper(mapper)
-
-                renderer.AddActor(self.actors[1])
-            elif (len(self.actors) == 2):
-                x, y, z = self.actors[1].GetCenter()
-
-                renderer.RemoveActor(self.actors[1])
-                self.actors.pop()
-
-                z = z - R
-
-                sphereSource = vtk.vtkSphereSource()
-                sphereSource.SetCenter(x, y, z)
-                sphereSource.SetRadius(R)
-
-                # Create a mapper and actor
-                mapper = vtk.vtkPolyDataMapper()
-                mapper.SetInputConnection(sphereSource.GetOutputPort())
-                self.actors.append(vtk.vtkActor())
-                self.actors[1].SetMapper(mapper)
-
-                renderer.AddActor(self.actors[1])
-
-        iren.GetRenderWindow().Render()
-        self.timer_count += 1
+from PyQt5 import QtCore, QtWidgets
+from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 
-def main():
-    ren = vtk.vtkRenderer()
-    renWin = vtk.vtkRenderWindow()
-    renWin.AddRenderer(ren)
+class MainWindow(QtWidgets.QMainWindow):
 
-    # create a renderwindowinteractor
-    iren = vtk.vtkRenderWindowInteractor()
-    iren.SetRenderWindow(renWin)
+    renderer = None
+    interactor = None
 
-    # create cube
-    cube = vtk.vtkCubeSource()
+    def __init__(self, parent=None):
+        QtWidgets.QMainWindow.__init__(self, parent)
 
-    # mapper
-    cubeMapper = vtk.vtkPolyDataMapper()
-    cubeMapper.SetInput(cube.GetOutput())
+        self.frame = QtWidgets.QFrame()
 
-    # actor
-    cubeActor = vtk.vtkActor()
-    cubeActor.SetMapper(cubeMapper)
+        self.vl = QtWidgets.QVBoxLayout()
+        self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
+        self.vl.addWidget(self.vtkWidget)
 
-    # assign actor to the renderer
-    ren.AddActor(cubeActor)
+        self.renderer = vtk.vtkRenderer()
+        self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
+        self.interactor = self.vtkWidget.GetRenderWindow().GetInteractor()
 
-    # enable user interface interactor
-    iren.Initialize()
-    renWin.Render()
-    iren.Start()
+        # Create source
+        source = vtk.vtkSphereSource()
+        source.SetCenter(0, 0, 0)
+        source.SetRadius(5.0)
+
+        # Create a mapper
+        mapper = vtk.vtkPolyDataMapper()
+        mapper.SetInputConnection(source.GetOutputPort())
+
+        # Create an actor
+        actor = vtk.vtkActor()
+        actor.SetMapper(mapper)
+
+        self.ren.AddActor(actor)
+
+        self.ren.ResetCamera()
+
+        self.frame.setLayout(self.vl)
+        self.setCentralWidget(self.frame)
+
+        self.show()
+        self.iren.Initialize()
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+
+    window = MainWindow()
+
+    sys.exit(app.exec_())

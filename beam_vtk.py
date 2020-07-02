@@ -215,15 +215,15 @@ class Node(object):
 
 
 class vtkUpdate:
-    def __init__(self, renderer, t_vals, x_index, nodes):
-        self.renderer = renderer
+    def __init__(self, render_window, t_vals, x_index, nodes):
         self.t_vals = t_vals
         self.x_index = x_index
         self.t_index = 0
         self.nodes = nodes
         self.mod = 1
+        self.ren_window = render_window
 
-    def execute(self, obj, event):
+    def execute(self):
         next_node = None
         i = self.x_index
         t = self.t_vals[self.t_index]
@@ -245,5 +245,4 @@ class vtkUpdate:
         print("Current Time: ", t, ":", self.t_index)
         self.t_index += self.mod
 
-        iren = obj
-        iren.GetRenderWindow().Render()
+        self.ren_window.Render()
