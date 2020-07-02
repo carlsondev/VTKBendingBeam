@@ -36,6 +36,7 @@ class Node(object):
         #
         # @ben: the purpose for defining a polygon object here is to map the object displacement
         #       to a sphere. The polygon objects could also be inside it's own seperate class ...
+        self.__indices = []
         self.__cell = vtk.vtkCellArray()
         self.__data = vtk.vtkPolyData()
         self.__polygon_mapper = vtk.vtkPolyDataMapper()
@@ -45,8 +46,6 @@ class Node(object):
         self.__points = vtk.vtkPoints()
         self.__polygon = [vtk.vtkPolygon() for i in range(1)]
         # self.__polygons = vtk.vtkCellArray()  # we have 6 sides to each beam box.
-        self.__indices = []
-        self.__lines = vtk.vtkCellArray()
         # This is overgeneralized because a beam
         # is really a shell (4 sides) except for
         # end points. But it is valid for now.
@@ -110,7 +109,7 @@ class PolygonPoints():
     
     def update_points(self):
         self.__points.GetData().Modified()
-        
+
     def add_points(self, node1, node2, key=None):
         n = self.__points.GetNumberOfPoints()
         r1 = node1.get_actor().GetCenter() # vilolates Law of Demeter. However, it's a concise description of what is going on
@@ -132,7 +131,6 @@ class PolygonPoints():
         self.__points.InsertNextPoint(end_point,   self.__height, -self.__width)
         self.__points.InsertNextPoint(end_point,   self.__height,  self.__width)
         return [n, n+1, n+2, n+3]
-        
 
 class vtkUpdate:
     def __init__(self, mode, nodes, polygon_points):
