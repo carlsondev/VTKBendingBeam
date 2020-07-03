@@ -5,16 +5,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import beam_vtk as bvtk
 from collections import defaultdict
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 actors = defaultdict(list)
 
 # @ben: here are alternative mode coefficients you can try out:
-#       0.59686 , 1.49418,  2.5 , 3.5
-mode = 1.49418
-omega = 2
-x_vals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+#       0.6 , 1.5,  2.5 , 3.5
+mode = 3.5
+omega = 1
+x_vals = range(21)
 #x_vals = [0, 1, 2, 3]
 t_vals = np.linspace(0, 4 * math.pi, 40).tolist()
 t_val_step = (2 * math.pi)/40
@@ -35,6 +35,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
         self.vl.addWidget(self.vtkWidget)
 
+        self.mode_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.mode_slider.setMinimum(0)
+        self.mode_slider.setMaximum(3.5)
+        self.mode_slider.setValue(3.5)
+        self.mode_slider.setSingleStep(0.1)
+        self.mode_slider.setTickInterval(35)
+        self.mode_slider.setTickPosition(QtWidgets.QSlider.TicksBothSides)
+
+        self.vl.addWidget(self.mode_slider)
+        self.mode_slider.sliderPressed.connect(self.mode_value_change)
+
         self.renderer = vtk.vtkRenderer()
         self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
         self.interactor = self.vtkWidget.GetRenderWindow().GetInteractor()
@@ -47,6 +58,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.interactor.Start()
         self.show()
 
+    def mode_value_change(self):
+        global mode
+        mode = self.mode_slider.value()
+
 def displacement(mode, x):
     beta = math.pi * mode
     r = beta * x
@@ -57,6 +72,7 @@ def displacement(mode, x):
         return 0.0
 
 def beam_deflection(t_val):
+    print("Mode: ", mode)
     return [displacement(mode, pos / x_vals[-1]) * math.sin(omega * t_val) for pos in x_vals]
 
 
