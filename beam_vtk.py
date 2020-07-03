@@ -12,6 +12,8 @@ class Node(object):
     height = .5
     num_points_per_poly = 4
 
+
+
     def __init__(self):
 
         self.__polyData = vtk.vtkPolyData()
@@ -63,16 +65,16 @@ class Node(object):
         self.update_position(x_val, y_val, 0)
 
         # Add back side quad data
-        self.add_fb_quad_data(next_node, -1)
+        self.get_fb_quad_points(next_node, -1)
 
         # Add front side quad data
-        self.add_fb_quad_data(next_node, 1)
+        self.get_fb_quad_points(next_node, 1)
 
         # Add bottom side quad data
-        self.add_top_quad_data(next_node, -self.height)
+        self.get_top_quad_points(next_node, -self.height)
 
         # Add top side quad data
-        self.add_top_quad_data(next_node, self.height)
+        self.get_top_quad_points(next_node, self.height)
 
         # Add left side quad data
         self.add_lr_side_quad_data(next_node, -1)
@@ -97,65 +99,109 @@ class Node(object):
         renderer.AddActor(self.__polygon_actor)
 
     # Add front or back side quad data
-    def add_fb_quad_data(self, nextNode, zMod):
+    def get_fb_quad_points(self, nextNode, zMod):
 
         node_center = self.get_actor().GetCenter()
         node_x = node_center[0]
         node_y = node_center[1]
 
-        next_node_center = nextNode.get_actor().GetCenter()
-        dx = math.fabs(next_node_center[0] - node_x) / 2
+        #Non rendered last point
+        next_node_x = beam.x_vals[-1]
+        next_node_y = beam.beam_deflection(beam.current_t_val)[next_node_x]
+
+        if nextNode is not None:
+            next_node_x = nextNode.get_actor().GetCenter()[0]
+            next_node_y = nextNode.get_actor().GetCenter()[1]
+
+        dx = math.fabs(next_node_x - node_x) / 2
 
         depth = self.boxDepth * zMod
         # Side quad points
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(4)
+
+        # points.SetPoint(0, node_x - dx, node_y - self.height, depth)
+        # points.SetPoint(1, node_x + dx, node_y - self.height, depth)
+        # points.SetPoint(2, node_x + dx, node_y + self.height, depth)
+        # points.SetPoint(3, node_x - dx, node_y + self.height, depth)
         points.SetPoint(0, node_x - dx, node_y - self.height, depth)
-        points.SetPoint(1, node_x + dx, node_y - self.height, depth)
-        points.SetPoint(2, node_x + dx, node_y + self.height, depth)
+        points.SetPoint(1, node_x + dx, next_node_y - self.height, depth)
+        points.SetPoint(2, node_x + dx, next_node_y + self.height, depth)
         points.SetPoint(3, node_x - dx, node_y + self.height, depth)
 
         self.add_quad_data(points)
 
     # Add top quad data
-    def add_top_quad_data(self, next_node, height):
+    def get_top_quad_points(self, next_node, height, last=False):
 
         node_center = self.get_actor().GetCenter()
-        next_node_center = next_node.get_actor().GetCenter()
 
         node_x = node_center[0]
         node_y = node_center[1]
 
-        dx = math.fabs(next_node_center[0] - node_x) / 2
+        next_node_x = beam.x_vals[-1]
+        next_node_y = beam.beam_deflection(beam.current_t_val)[next_node_x]
+
+        if next_node is not None:
+            next_node_center = next_node.get_actor().GetCenter()
+            next_node_x = next_node_center[0]
+            next_node_y = next_node_center[1]
+
+        dx = math.fabs(next_node_x - node_x) / 2
 
         # Top Quad Points
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(4)
-        points.SetPoint(0, node_x - dx, height + node_y, self.boxDepth)
-        points.SetPoint(1, node_x + dx, height + node_y, self.boxDepth)
-        points.SetPoint(2, node_x + dx, height + node_y, -self.boxDepth)
-        points.SetPoint(3, node_x - dx, height + node_y, -self.boxDepth)
+
+        if last:
+            height *=-1
+        # points.SetPoint(0, node_x - dx, height + node_y, self.boxDepth)
+        # points.SetPoint(1, node_x + dx, height + node_y, self.boxDepth)
+        # points.SetPoint(2, node_x + dx, height + node_y, -self.boxDepth)
+        # points.SetPoint(3, node_x - dx, height + node_y, -self.boxDepth)
+        points.SetPoint(0, node_x - dx, node_y + height, self.boxDepth)
+        points.SetPoint(1, node_x + dx, next_node_y + height, self.boxDepth)
+        points.SetPoint(2, node_x + dx, next_node_y + height, -self.boxDepth)
+        points.SetPoint(3, node_x - dx, node_y + height, -self.boxDepth)
 
         self.add_quad_data(points)
+
 
     # Get actor for left or right side quad
     def add_lr_side_quad_data(self, next_node, dx_mod):
 
         node_center = self.get_actor().GetCenter()
-        next_node_center = next_node.get_actor().GetCenter()
-
         node_x = node_center[0]
         node_y = node_center[1]
 
-        dx = math.fabs((next_node_center[0] - node_x) / 2) * dx_mod
+        next_node_x = beam.x_vals[-1]
+        next_node_y = beam.beam_deflection(beam.current_t_val)[next_node_x]
+
+        if next_node is not None:
+            next_node_center = next_node.get_actor().GetCenter()
+            next_node_x = next_node_center[0]
+            next_node_y = next_node_center[1]
+
+        dx = math.fabs((next_node_x - node_x) / 2) * dx_mod
 
         # Side quad points
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(4)
-        points.SetPoint(0, node_x + dx, node_y - self.height, self.boxDepth)
-        points.SetPoint(1, node_x + dx, node_y + self.height, self.boxDepth)
-        points.SetPoint(2, node_x + dx, node_y + self.height, -self.boxDepth)
-        points.SetPoint(3, node_x + dx, node_y - self.height, -self.boxDepth)
+        # points.SetPoint(0, node_x + dx, node_y - self.height, self.boxDepth)
+        # points.SetPoint(1, node_x + dx, node_y + self.height, self.boxDepth)
+        # points.SetPoint(2, node_x + dx, node_y + self.height, -self.boxDepth)
+        # points.SetPoint(3, node_x + dx, node_y - self.height, -self.boxDepth)
+
+        if dx_mod > 0:
+            points.SetPoint(0, node_x + dx, next_node_y - self.height, self.boxDepth)
+            points.SetPoint(1, node_x + dx, next_node_y + self.height, self.boxDepth)
+            points.SetPoint(2, node_x + dx, next_node_y + self.height, -self.boxDepth)
+            points.SetPoint(3, node_x + dx, next_node_y - self.height, -self.boxDepth)
+        else:
+            points.SetPoint(0, node_x + dx, node_y - self.height, self.boxDepth)
+            points.SetPoint(1, node_x + dx, node_y + self.height, self.boxDepth)
+            points.SetPoint(2, node_x + dx, node_y + self.height, -self.boxDepth)
+            points.SetPoint(3, node_x + dx, node_y - self.height, -self.boxDepth)
 
         self.add_quad_data(points)
 
@@ -200,18 +246,40 @@ class Node(object):
         self.__transform.Identity()
         self.__transform.Translate(x, y, z)
 
-    def update_polygon_position(self, y):
-        poly_actor_center = self.__polygon_actor.GetCenter()
-        actor_y = poly_actor_center[1]
+    def update_polygon_position(self, y, next_node):
 
-        self.__polygon_transform.Identity()
-        self.__polygon_transform.Translate(0, y-actor_y, 0)
-        self.__polygon_filter.Update()
+        self.__lines.Reset()
+        self.__polygons.Reset()
+        self.__points.Reset()
 
-        for id in self.__indices:
-            transformed_point = self.__polygon_filter.GetOutput().GetPoints().GetPoint(id)
-            self.__polyData.GetPoints().SetPoint(id, transformed_point)
-            self.__points.GetData().Modified()
+        # Add back side quad data
+        self.get_fb_quad_points(next_node, -1)
+
+        # Add front side quad data
+        self.get_fb_quad_points(next_node, 1)
+
+        # Add bottom side quad data
+        self.get_top_quad_points(next_node, -self.height)
+
+        # Add top side quad data
+        self.get_top_quad_points(next_node, self.height)
+
+        # Add left side quad data
+        self.add_lr_side_quad_data(next_node, -1)
+
+        # Add right side quad data
+        self.add_lr_side_quad_data(next_node, 1)
+
+        # Update nodes polyData
+        self.__polyData.SetLines(self.__lines)
+        self.__polyData.SetPolys(self.__polygons)
+        self.__polyData.SetPoints(self.__points)
+
+
+        # for id in self.__indices:
+        #     transformed_point = self.__polygon_filter.GetOutput().GetPoints().GetPoint(id)
+        #     self.__polyData.GetPoints().SetPoint(id, transformed_point)
+        #     self.__points.GetData().Modified()
 
 
 class vtkUpdate:
@@ -221,18 +289,25 @@ class vtkUpdate:
         self.ren_window = render_window
 
     def execute(self):
-        next_node = None
+
         i = self.x_index
         y = beam.beam_deflection(beam.current_t_val)
+
+
         for i in range(len(self.nodes)):
             node = self.nodes[i]
-            node.update_position(i, y[i], 0)
-            node.update_polygon_position(y[i])
+
+            next_node = None
 
             if i < (len(self.nodes) - 1):
                 self.nodes[i + 1].update_position(i + 1, y[i + 1], 0)
                 next_node = self.nodes[i + 1]
+
+            node.update_position(i, y[i], 0)
+            node.update_polygon_position(y[i], next_node)
+
+
         beam.current_t_val+=beam.t_val_step
-        print("Current Time: ", beam.current_t_val)
+        #print("Current Time: ", beam.current_t_val)
 
         self.ren_window.Render()

@@ -11,10 +11,11 @@ from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 actors = defaultdict(list)
 
 # @ben: here are alternative mode coefficients you can try out:
-#       0.59686 , 1.49418,  2.5 , 3.4999
+#       0.59686 , 1.49418,  2.5 , 3.5
 mode = 1.49418
-omega = 1.0
-x_vals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+omega = 2
+x_vals = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+#x_vals = [0, 1, 2, 3]
 t_vals = np.linspace(0, 4 * math.pi, 40).tolist()
 t_val_step = (2 * math.pi)/40
 current_t_val = 0
@@ -45,10 +46,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.interactor.Initialize()
         self.interactor.Start()
         self.show()
-
-        # Add actors
-
-
 
 def displacement(mode, x):
     beta = math.pi * mode
@@ -81,6 +78,7 @@ def generate_plot(t, x):
 
 def generate_vtk(t_vals, x):
     N = len(x)
+    N-=1
     app = QtWidgets.QApplication(sys.argv)
 
     main_window = MainWindow()
@@ -89,7 +87,7 @@ def generate_vtk(t_vals, x):
     # convenient and less messy.
     nodes = [bvtk.Node() for i in range(N)]
 
-    y = beam_deflection(0)  # grabbing an arbitrary time to create deflected beam state
+    y = beam_deflection(10)  # grabbing an arbitrary time to create deflected beam state
     for i in range(N):
 
         if i < (N - 1):
@@ -100,7 +98,7 @@ def generate_vtk(t_vals, x):
             next_node = nodes[i-1]
 
         #Generates all node specific actors and adds to renderer
-        nodes[i].add_poly_actor_to_renderer(main_window.renderer, next_node, x[i], y[i], )
+        nodes[i].add_poly_actor_to_renderer(main_window.renderer, next_node, x[i], y[i])
 
 
     main_window.window.Render()
@@ -111,7 +109,7 @@ def generate_vtk(t_vals, x):
 
     timer = QtCore.QTimer()
     timer.timeout.connect(cb.execute)
-    timer.start(100)
+    timer.start(50)
 
     # # Sign up to receive TimerEvent
     main_window.renderer.ResetCamera()
