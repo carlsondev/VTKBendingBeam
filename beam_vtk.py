@@ -58,29 +58,29 @@ class Node(object):
         return self.__actor
 
     # Generates all node specific actors and adds to renderer
-    def add_poly_actor_to_renderer(self, renderer, next_node, x_val, y_val):
+    def add_poly_actor_to_renderer(self, renderer, next_node, x_val, y_val, this_mode):
         node_actor = self.get_actor()
         renderer.AddActor(node_actor)
 
         self.update_position(x_val, y_val, 0)
 
         # Add back side quad data
-        self.get_fb_quad_points(next_node, -1)
+        self.get_fb_quad_points(next_node, -1, this_mode)
 
         # Add front side quad data
-        self.get_fb_quad_points(next_node, 1)
+        self.get_fb_quad_points(next_node, 1, this_mode)
 
         # Add bottom side quad data
-        self.get_top_quad_points(next_node, -self.height)
+        self.get_top_quad_points(next_node, -self.height, this_mode)
 
         # Add top side quad data
-        self.get_top_quad_points(next_node, self.height)
+        self.get_top_quad_points(next_node, self.height, this_mode)
 
         # Add left side quad data
-        self.add_lr_side_quad_data(next_node, -1)
+        self.add_lr_side_quad_data(next_node, -1, this_mode)
 
         # Add right side quad data
-        self.add_lr_side_quad_data(next_node, 1)
+        self.add_lr_side_quad_data(next_node, 1, this_mode)
 
         # Update nodes polyData
         self.__polyData.SetLines(self.__lines)
@@ -99,7 +99,7 @@ class Node(object):
         renderer.AddActor(self.__polygon_actor)
 
     # Add front or back side quad data
-    def get_fb_quad_points(self, nextNode, zMod):
+    def get_fb_quad_points(self, nextNode, zMod, this_mode):
 
         node_center = self.get_actor().GetCenter()
         node_x = node_center[0]
@@ -107,7 +107,7 @@ class Node(object):
 
         #Non rendered last point
         next_node_x = beam.x_vals[-1]
-        next_node_y = beam.beam_deflection(beam.current_t_val)[next_node_x]
+        next_node_y = beam.beam_deflection(beam.current_t_val, this_mode)[next_node_x]
 
         if nextNode is not None:
             next_node_x = nextNode.get_actor().GetCenter()[0]
@@ -132,7 +132,7 @@ class Node(object):
         self.add_quad_data(points)
 
     # Add top quad data
-    def get_top_quad_points(self, next_node, height, last=False):
+    def get_top_quad_points(self, next_node, height, this_mode, last=False):
 
         node_center = self.get_actor().GetCenter()
 
@@ -140,7 +140,7 @@ class Node(object):
         node_y = node_center[1]
 
         next_node_x = beam.x_vals[-1]
-        next_node_y = beam.beam_deflection(beam.current_t_val)[next_node_x]
+        next_node_y = beam.beam_deflection(beam.current_t_val, this_mode)[next_node_x]
 
         if next_node is not None:
             next_node_center = next_node.get_actor().GetCenter()
@@ -168,14 +168,14 @@ class Node(object):
 
 
     # Get actor for left or right side quad
-    def add_lr_side_quad_data(self, next_node, dx_mod):
+    def add_lr_side_quad_data(self, next_node, dx_mod, this_mode):
 
         node_center = self.get_actor().GetCenter()
         node_x = node_center[0]
         node_y = node_center[1]
 
         next_node_x = beam.x_vals[-1]
-        next_node_y = beam.beam_deflection(beam.current_t_val)[next_node_x]
+        next_node_y = beam.beam_deflection(beam.current_t_val, this_mode)[next_node_x]
 
         if next_node is not None:
             next_node_center = next_node.get_actor().GetCenter()
@@ -246,29 +246,29 @@ class Node(object):
         self.__transform.Identity()
         self.__transform.Translate(x, y, z)
 
-    def update_polygon_position(self, y, next_node):
+    def update_polygon_position(self, y, next_node, this_mode):
 
         self.__lines.Reset()
         self.__polygons.Reset()
         self.__points.Reset()
 
         # Add back side quad data
-        self.get_fb_quad_points(next_node, -1)
+        self.get_fb_quad_points(next_node, -1, this_mode)
 
         # Add front side quad data
-        self.get_fb_quad_points(next_node, 1)
+        self.get_fb_quad_points(next_node, 1, this_mode)
 
         # Add bottom side quad data
-        self.get_top_quad_points(next_node, -self.height)
+        self.get_top_quad_points(next_node, -self.height, this_mode)
 
         # Add top side quad data
-        self.get_top_quad_points(next_node, self.height)
+        self.get_top_quad_points(next_node, self.height, this_mode)
 
         # Add left side quad data
-        self.add_lr_side_quad_data(next_node, -1)
+        self.add_lr_side_quad_data(next_node, -1, this_mode)
 
         # Add right side quad data
-        self.add_lr_side_quad_data(next_node, 1)
+        self.add_lr_side_quad_data(next_node, 1, this_mode)
 
         # Update nodes polyData
         self.__polyData.SetLines(self.__lines)
@@ -283,15 +283,20 @@ class Node(object):
 
 
 class vtkUpdate:
-    def __init__(self, render_window, x_index, nodes):
+    def __init__(self, render_window, x_index, nodes, mode):
         self.x_index = x_index
         self.nodes = nodes
         self.ren_window = render_window
+        self.__mode = mode
+        
+    def set_mode(self, val):
+        print('triggered')
+        self.__mode = val
 
     def execute(self):
 
         i = self.x_index
-        y = beam.beam_deflection(beam.current_t_val)
+        y = beam.beam_deflection(beam.current_t_val, self.__mode)
 
 
         for i in range(len(self.nodes)):
@@ -304,7 +309,7 @@ class vtkUpdate:
                 next_node = self.nodes[i + 1]
 
             node.update_position(i, y[i], 0)
-            node.update_polygon_position(y[i], next_node)
+            node.update_polygon_position(y[i], next_node, self.__mode)
 
 
         beam.current_t_val+=beam.t_val_step

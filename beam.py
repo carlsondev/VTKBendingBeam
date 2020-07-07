@@ -25,10 +25,11 @@ class MainWindow(QtWidgets.QMainWindow):
     renderer = None
     interactor = None
     window = None
+    __mode_changed = QtCore.pyqtSignal(float)
 
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
-
+        
         self.frame = QtWidgets.QFrame()
 
         self.vl = QtWidgets.QVBoxLayout()
@@ -44,7 +45,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mode_slider.setTickPosition(QtWidgets.QSlider.TicksBothSides)
 
         self.vl.addWidget(self.mode_slider)
-        self.mode_slider.sliderPressed.connect(self.mode_value_change)
+        self.mode_slider.valueChanged.connect(self.mode_value_change)
 
         self.renderer = vtk.vtkRenderer()
         self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
@@ -57,9 +58,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.interactor.Initialize()
         self.interactor.Start()
         self.show()
+        
+    def add_slot(self, vtk_update):
+        self.__mode_changed.connect(vtk_update.set_mode)
 
     def mode_value_change(self):
         global mode
+        print(mode)
+        self.__mode_changed.emit(mode)
         mode = self.mode_slider.value()
 
 def displacement(mode, x):
@@ -71,14 +77,14 @@ def displacement(mode, x):
     except ZeroDivisionError:
         return 0.0
 
-def beam_deflection(t_val):
-    print("Mode: ", mode)
-    return [displacement(mode, pos / x_vals[-1]) * math.sin(omega * t_val) for pos in x_vals]
+def beam_deflection(t_val, this_mode):
+    # print("Mode: ", mode)
+    return [displacement(this_mode, pos / x_vals[-1]) * math.sin(omega * t_val) for pos in x_vals]
 
 
 def generate_plot(t, x):
     for i, time in enumerate(t):
-        y = beam_deflection(time)
+        y = beam_deflection(time, mode)
         plt.figure(1)
 
         if i == 3:
@@ -103,7 +109,7 @@ def generate_vtk(t_vals, x):
     # convenient and less messy.
     nodes = [bvtk.Node() for i in range(N)]
 
-    y = beam_deflection(10)  # grabbing an arbitrary time to create deflected beam state
+    y = beam_deflection(10, mode)  # grabbing an arbitrary time to create deflected beam state
     for i in range(N):
 
         if i < (N - 1):
@@ -114,20 +120,21 @@ def generate_vtk(t_vals, x):
             next_node = nodes[i-1]
 
         #Generates all node specific actors and adds to renderer
-        nodes[i].add_poly_actor_to_renderer(main_window.renderer, next_node, x[i], y[i])
+        nodes[i].add_poly_actor_to_renderer(main_window.renderer, next_node, x[i], y[i], mode)
 
 
     main_window.window.Render()
 
-    cb = bvtk.vtkUpdate(main_window.window, 0, nodes)
+    cb = bvtk.vtkUpdate(main_window.window, 0, nodes, mode)
+    main_window.add_slot(cb)
     # main_window.interactor.AddObserver('TimerEvent', cb.execute)
     # cb.timerId = main_window.interactor.CreateRepeatingTimer(150)
-
+    
     timer = QtCore.QTimer()
     timer.timeout.connect(cb.execute)
-    timer.start(50)
-
-    # # Sign up to receive TimerEvent
+    timer.start(500)
+    
+    # Sign up to receive TimerEvent
     main_window.renderer.ResetCamera()
 
     sys.exit(app.exec_())
@@ -135,5 +142,5 @@ def generate_vtk(t_vals, x):
 
 if __name__ == "__main__":
 
-    generate_plot(t_vals, x_vals)
+    # generate_plot(t_vals, x_vals)
     generate_vtk(t_vals, x_vals)
