@@ -291,6 +291,9 @@ class vtkUpdate:
     def set_mode(self, val):
         beam.mode = val
 
+    def set_omega(self, val):
+        beam.omega = val
+
     def execute(self):
 
         i = self.x_index

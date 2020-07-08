@@ -12,7 +12,6 @@ actors = defaultdict(list)
 
 # @ben: here are alternative mode coefficients you can try out:
 #       0.6 , 1.5,  2.5 , 3.5
-omega = 1
 x_vals = range(21)
 #x_vals = [0, 1, 2, 3]
 t_vals = np.linspace(0, 4 * math.pi, 40).tolist()
@@ -21,6 +20,7 @@ current_t_val = 0
 
 mode = 2.5
 mode_max = 3.5
+omega = 1
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -28,32 +28,68 @@ class MainWindow(QtWidgets.QMainWindow):
     interactor = None
     window = None
     mode_changed_signal = QtCore.pyqtSignal(float)
+    omega_changed_signal = QtCore.pyqtSignal(float)
 
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
 
         self.frame = QtWidgets.QFrame()
 
-        self.vl = QtWidgets.QVBoxLayout()
+        self.main_vlayout = QtWidgets.QVBoxLayout()
         self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
-        self.vl.addWidget(self.vtkWidget)
+        self.main_vlayout.addWidget(self.vtkWidget)
+
+        # Start setup mode slider layout
+        self.mode_slider_layout = QtWidgets.QHBoxLayout()
+
+        self.m_slider_label = QtWidgets.QLabel()
+        self.m_slider_label.setText("Mode: ")
+        self.m_slider_label.setAlignment(QtCore.Qt.AlignLeft)
 
         self.mode_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.mode_slider.setMinimum(0)
         self.mode_slider.setMaximum(100)
+        self.mode_slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+        self.mode_slider.setTickInterval(1)
 
         normalized_val = (mode / mode_max) * 100
         self.mode_slider.setValue(int(normalized_val))
 
-        self.vl.addWidget(self.mode_slider)
         self.mode_slider.valueChanged.connect(self.mode_value_change)
+
+        self.mode_slider_layout.addWidget(self.m_slider_label)
+        self.mode_slider_layout.addWidget(self.mode_slider)
+
+        self.main_vlayout.addLayout(self.mode_slider_layout)
+        # End setup mode slider layout
+
+        # Start setup omega slider layout
+        self.omega_slider_layout = QtWidgets.QHBoxLayout()
+
+        self.o_slider_label = QtWidgets.QLabel()
+        self.o_slider_label.setText("Omega: ")
+        self.o_slider_label.setAlignment(QtCore.Qt.AlignLeft)
+
+        self.omega_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.omega_slider.setMinimum(0)
+        self.omega_slider.setMaximum(10)
+        self.omega_slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+        self.omega_slider.setTickInterval(1)
+
+        self.omega_slider.valueChanged.connect(self.omega_value_change)
+
+        self.omega_slider_layout.addWidget(self.o_slider_label)
+        self.omega_slider_layout.addWidget(self.omega_slider)
+
+        self.main_vlayout.addLayout(self.omega_slider_layout)
+        # End setup omega slider layout
 
         self.renderer = vtk.vtkRenderer()
         self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
         self.interactor = self.vtkWidget.GetRenderWindow().GetInteractor()
         self.window = self.vtkWidget.GetRenderWindow()
 
-        self.frame.setLayout(self.vl)
+        self.frame.setLayout(self.main_vlayout)
         self.setCentralWidget(self.frame)
 
         self.interactor.Initialize()
@@ -62,12 +98,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def add_slot(self, vtk_update):
         self.mode_changed_signal.connect(vtk_update.set_mode)
+        self.omega_changed_signal.connect(vtk_update.set_omega)
 
     def mode_value_change(self, value):
         global mode
         mode = (value / 100) * mode_max
         self.mode_changed_signal.emit(mode)
         print("mode changed: ", mode)
+
+    def omega_value_change(self, value):
+        global omega
+        omega = value
+        self.omega_changed_signal.emit(omega)
+        print("omega changed: ", omega)
 
 def displacement(mode, x):
     beta = math.pi * mode
