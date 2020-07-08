@@ -13,9 +13,9 @@ actors = defaultdict(list)
 # @ben: here are alternative mode coefficients you can try out:
 #       0.6 , 1.5,  2.5 , 3.5
 x_vals = range(21)
-#x_vals = [0, 1, 2, 3]
+# x_vals = [0, 1, 2, 3]
 t_vals = np.linspace(0, 4 * math.pi, 40).tolist()
-t_val_step = (2 * math.pi)/40
+t_val_step = (2 * math.pi) / 40
 current_t_val = 0
 
 mode = 2.5
@@ -24,6 +24,62 @@ omega = 1
 is_playing = True
 
 timer = QtCore.QTimer()
+is_transparent = True
+
+vtk_widget: QVTKRenderWindowInteractor
+
+
+class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
+
+    def __init__(self, parent=None):
+        self.AddObserver("LeftButtonPressEvent", self.leftButtonPressEvent)
+
+        self.LastPickedActor = None
+        self.LastPickedProperty = vtk.vtkProperty()
+
+    def leftButtonPressEvent(self, obj, event):
+        clickPos = self.GetInteractor().GetEventPosition()
+
+        picker = vtk.vtkPropPicker()
+        picker.Pick(clickPos[0], clickPos[1], 0, self.GetDefaultRenderer())
+
+        # get the new
+        self.NewPickedActor = picker.GetActor()
+
+        # If something was selected
+        if self.NewPickedActor:
+            # If we picked something before, reset its property
+            if self.LastPickedActor:
+                self.LastPickedActor.GetProperty().DeepCopy(self.LastPickedProperty)
+
+            # Save the property of the picked actor so that we can
+            # restore it next time
+            self.LastPickedProperty.DeepCopy(self.NewPickedActor.GetProperty())
+            # Highlight the picked actor by changing its properties
+            self.NewPickedActor.GetProperty().SetColor(1.0, 0.0, 0.0)
+            self.NewPickedActor.GetProperty().SetDiffuse(1.0)
+            self.NewPickedActor.GetProperty().SetSpecular(0.0)
+
+            actor_center = self.NewPickedActor.GetCenter()
+            actor_x = actor_center[0]
+            actor_y = actor_center[1]
+            actor_z = actor_center[2]
+
+            global vtk_widget
+            msgBox = QtWidgets.QMessageBox()
+            msgBox.setText("X: {}\nY: {}\nZ: {}".format(actor_x, actor_y, actor_z))
+
+            msgBox.setIcon(QtWidgets.QMessageBox.Information)
+            msgBox.setWindowTitle("Node Info")
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.Cancel)
+
+            returnValue = msgBox.exec()
+
+            # save the last picked actor
+            self.LastPickedActor = self.NewPickedActor
+
+        self.OnLeftButtonDown()
+        return
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -37,11 +93,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
 
+        global vtk_widget
+
         self.frame = QtWidgets.QFrame()
 
         self.main_vlayout = QtWidgets.QVBoxLayout()
-        self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
-        self.main_vlayout.addWidget(self.vtkWidget)
+        vtk_widget = QVTKRenderWindowInteractor(self.frame)
+        self.main_vlayout.addWidget(vtk_widget)
 
         # Start setup mode slider layout
         self.mode_slider_layout = QtWidgets.QHBoxLayout()
@@ -94,12 +152,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_vlayout.addWidget(self.button)
 
         self.renderer = vtk.vtkRenderer()
-        self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
-        self.interactor = self.vtkWidget.GetRenderWindow().GetInteractor()
-        self.window = self.vtkWidget.GetRenderWindow()
+        vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
+        self.interactor = vtk_widget.GetRenderWindow().GetInteractor()
+        self.window = vtk_widget.GetRenderWindow()
 
         self.frame.setLayout(self.main_vlayout)
         self.setCentralWidget(self.frame)
+
+        style = MouseInteractorHighLightActor()
+        style.SetDefaultRenderer(self.renderer)
+        self.interactor.SetInteractorStyle(style)
 
         self.interactor.Initialize()
         self.interactor.Start()
@@ -131,6 +193,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.omega_changed_signal.emit(omega)
         print("omega changed: ", omega)
 
+
 def displacement(mode, x):
     beta = math.pi * mode
     r = beta * x
@@ -139,6 +202,7 @@ def displacement(mode, x):
         return (math.cosh(r) - math.cos(r) + k * (math.sin(r) - math.sinh(r)))
     except ZeroDivisionError:
         return 0.0
+
 
 def beam_deflection(t_val):
     return [displacement(mode, pos / x_vals[-1]) * math.sin(omega * t_val) for pos in x_vals]
@@ -162,7 +226,7 @@ def generate_plot(t, x):
 
 def generate_vtk(t_vals, x):
     N = len(x)
-    N-=1
+    N -= 1
 
     app = QtWidgets.QApplication(sys.argv)
     main_window = MainWindow()
@@ -175,15 +239,14 @@ def generate_vtk(t_vals, x):
     for i in range(N):
 
         if i < (N - 1):
-            #Updates position ahead of time to render next node height
+            # Updates position ahead of time to render next node height
             nodes[i + 1].update_position(x[i + 1], y[i + 1], 0)
             next_node = nodes[i + 1]
         else:
-            next_node = nodes[i-1]
+            next_node = nodes[i - 1]
 
-        #Generates all node specific actors and adds to renderer
+        # Generates all node specific actors and adds to renderer
         nodes[i].add_poly_actor_to_renderer(main_window.renderer, next_node, x[i], y[i])
-
 
     main_window.window.Render()
 
@@ -201,6 +264,5 @@ def generate_vtk(t_vals, x):
 
 
 if __name__ == "__main__":
-
-    #generate_plot(t_vals, x_vals)
+    # generate_plot(t_vals, x_vals)
     generate_vtk(t_vals, x_vals)

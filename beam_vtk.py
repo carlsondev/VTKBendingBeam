@@ -25,7 +25,7 @@ class Node(object):
         self.__mapper.SetInputConnection(self.__sphere.GetOutputPort())
         self.__actor.SetUserTransform(self.__transform)
         self.__actor.SetMapper(self.__mapper)
-        self.__actor.GetProperty().SetColor(1.0, 0, 0)
+        self.__actor.GetProperty().SetColor(0, 0, 1)
 
         # Attributes for rendering the beam shape. Not implemented,
         # but a good next step
@@ -84,7 +84,8 @@ class Node(object):
 
         # Update nodes polyData
         self.__polyData.SetLines(self.__lines)
-        self.__polyData.SetPolys(self.__polygons)
+        if not beam.is_transparent:
+            self.__polyData.SetPolys(self.__polygons)
         self.__polyData.SetPoints(self.__points)
 
         # Set Transformation/Filter/Mapper properties
@@ -272,7 +273,8 @@ class Node(object):
 
         # Update nodes polyData
         self.__polyData.SetLines(self.__lines)
-        self.__polyData.SetPolys(self.__polygons)
+        if not beam.is_transparent:
+            self.__polyData.SetPolys(self.__polygons)
         self.__polyData.SetPoints(self.__points)
 
 
