@@ -12,7 +12,6 @@ actors = defaultdict(list)
 
 # @ben: here are alternative mode coefficients you can try out:
 #       0.6 , 1.5,  2.5 , 3.5
-mode = 3.5
 omega = 1
 x_vals = range(21)
 #x_vals = [0, 1, 2, 3]
@@ -20,11 +19,15 @@ t_vals = np.linspace(0, 4 * math.pi, 40).tolist()
 t_val_step = (2 * math.pi)/40
 current_t_val = 0
 
+mode = 2.5
+mode_max = 3.5
+
 
 class MainWindow(QtWidgets.QMainWindow):
     renderer = None
     interactor = None
     window = None
+    mode_changed_signal = QtCore.pyqtSignal(float)
 
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
@@ -37,14 +40,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.mode_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.mode_slider.setMinimum(0)
-        self.mode_slider.setMaximum(3.5)
-        self.mode_slider.setValue(3.5)
-        self.mode_slider.setSingleStep(0.1)
-        self.mode_slider.setTickInterval(35)
-        self.mode_slider.setTickPosition(QtWidgets.QSlider.TicksBothSides)
+        self.mode_slider.setMaximum(100)
+
+        normalized_val = (mode / mode_max) * 100
+        self.mode_slider.setValue(int(normalized_val))
 
         self.vl.addWidget(self.mode_slider)
-        self.mode_slider.sliderPressed.connect(self.mode_value_change)
+        self.mode_slider.valueChanged.connect(self.mode_value_change)
 
         self.renderer = vtk.vtkRenderer()
         self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
@@ -58,9 +60,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.interactor.Start()
         self.show()
 
-    def mode_value_change(self):
+    def add_slot(self, vtk_update):
+        self.mode_changed_signal.connect(vtk_update.set_mode)
+
+    def mode_value_change(self, value):
         global mode
-        mode = self.mode_slider.value()
+        mode = (value / 100) * mode_max
+        self.mode_changed_signal.emit(mode)
+        print("mode changed: ", mode)
 
 def displacement(mode, x):
     beta = math.pi * mode
@@ -72,7 +79,6 @@ def displacement(mode, x):
         return 0.0
 
 def beam_deflection(t_val):
-    print("Mode: ", mode)
     return [displacement(mode, pos / x_vals[-1]) * math.sin(omega * t_val) for pos in x_vals]
 
 
@@ -95,8 +101,8 @@ def generate_plot(t, x):
 def generate_vtk(t_vals, x):
     N = len(x)
     N-=1
-    app = QtWidgets.QApplication(sys.argv)
 
+    app = QtWidgets.QApplication(sys.argv)
     main_window = MainWindow()
 
     # bvtk.Node and bvtk.Line are custom objects to make reuse of mappings/actors
@@ -120,9 +126,9 @@ def generate_vtk(t_vals, x):
     main_window.window.Render()
 
     cb = bvtk.vtkUpdate(main_window.window, 0, nodes)
+    main_window.add_slot(cb)
     # main_window.interactor.AddObserver('TimerEvent', cb.execute)
     # cb.timerId = main_window.interactor.CreateRepeatingTimer(150)
-
     timer = QtCore.QTimer()
     timer.timeout.connect(cb.execute)
     timer.start(50)
@@ -135,5 +141,5 @@ def generate_vtk(t_vals, x):
 
 if __name__ == "__main__":
 
-    generate_plot(t_vals, x_vals)
+    #generate_plot(t_vals, x_vals)
     generate_vtk(t_vals, x_vals)

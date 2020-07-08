@@ -288,6 +288,9 @@ class vtkUpdate:
         self.nodes = nodes
         self.ren_window = render_window
 
+    def set_mode(self, val):
+        beam.mode = val
+
     def execute(self):
 
         i = self.x_index
