@@ -21,9 +21,13 @@ current_t_val = 0
 mode = 2.5
 mode_max = 3.5
 omega = 1
+is_playing = True
+
+timer = QtCore.QTimer()
 
 
 class MainWindow(QtWidgets.QMainWindow):
+    is_playing: bool = False
     renderer = None
     interactor = None
     window = None
@@ -84,6 +88,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_vlayout.addLayout(self.omega_slider_layout)
         # End setup omega slider layout
 
+        self.button = QtWidgets.QPushButton("Pause")
+        self.button.pressed.connect(self.play_pause_button)
+
+        self.main_vlayout.addWidget(self.button)
+
         self.renderer = vtk.vtkRenderer()
         self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
         self.interactor = self.vtkWidget.GetRenderWindow().GetInteractor()
@@ -95,6 +104,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.interactor.Initialize()
         self.interactor.Start()
         self.show()
+
+    def play_pause_button(self):
+        self.is_playing = not self.is_playing
+        global timer
+        if self.is_playing:
+            self.button.setText("Pause")
+            timer.start(50)
+        else:
+            self.button.setText("Play")
+            timer.stop()
 
     def add_slot(self, vtk_update):
         self.mode_changed_signal.connect(vtk_update.set_mode)
@@ -172,7 +191,6 @@ def generate_vtk(t_vals, x):
     main_window.add_slot(cb)
     # main_window.interactor.AddObserver('TimerEvent', cb.execute)
     # cb.timerId = main_window.interactor.CreateRepeatingTimer(150)
-    timer = QtCore.QTimer()
     timer.timeout.connect(cb.execute)
     timer.start(50)
 
