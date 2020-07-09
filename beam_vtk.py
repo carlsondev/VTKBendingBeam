@@ -9,7 +9,7 @@ class Node(object):
     """
 
     boxDepth = 2
-    height = .5
+    height = 1
     num_points_per_poly = 4
 
 
@@ -121,10 +121,6 @@ class Node(object):
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(4)
 
-        # points.SetPoint(0, node_x - dx, node_y - self.height, depth)
-        # points.SetPoint(1, node_x + dx, node_y - self.height, depth)
-        # points.SetPoint(2, node_x + dx, node_y + self.height, depth)
-        # points.SetPoint(3, node_x - dx, node_y + self.height, depth)
         points.SetPoint(0, node_x - dx, node_y - self.height, depth)
         points.SetPoint(1, node_x + dx, next_node_y - self.height, depth)
         points.SetPoint(2, node_x + dx, next_node_y + self.height, depth)
@@ -156,10 +152,7 @@ class Node(object):
 
         if last:
             height *=-1
-        # points.SetPoint(0, node_x - dx, height + node_y, self.boxDepth)
-        # points.SetPoint(1, node_x + dx, height + node_y, self.boxDepth)
-        # points.SetPoint(2, node_x + dx, height + node_y, -self.boxDepth)
-        # points.SetPoint(3, node_x - dx, height + node_y, -self.boxDepth)
+
         points.SetPoint(0, node_x - dx, node_y + height, self.boxDepth)
         points.SetPoint(1, node_x + dx, next_node_y + height, self.boxDepth)
         points.SetPoint(2, node_x + dx, next_node_y + height, -self.boxDepth)
@@ -188,10 +181,6 @@ class Node(object):
         # Side quad points
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(4)
-        # points.SetPoint(0, node_x + dx, node_y - self.height, self.boxDepth)
-        # points.SetPoint(1, node_x + dx, node_y + self.height, self.boxDepth)
-        # points.SetPoint(2, node_x + dx, node_y + self.height, -self.boxDepth)
-        # points.SetPoint(3, node_x + dx, node_y - self.height, -self.boxDepth)
 
         if dx_mod > 0:
             points.SetPoint(0, node_x + dx, next_node_y - self.height, self.boxDepth)
@@ -273,8 +262,8 @@ class Node(object):
 
         # Update nodes polyData
         self.__polyData.SetLines(self.__lines)
-        if not beam.is_transparent:
-            self.__polyData.SetPolys(self.__polygons)
+        self.__polyData.SetPolys(self.__polygons)
+
         self.__polyData.SetPoints(self.__points)
 
 

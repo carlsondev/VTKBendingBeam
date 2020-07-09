@@ -146,10 +146,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_vlayout.addLayout(self.omega_slider_layout)
         # End setup omega slider layout
 
-        self.button = QtWidgets.QPushButton("Pause")
-        self.button.pressed.connect(self.play_pause_button)
+        self.control_button = QtWidgets.QPushButton("Pause")
+        self.control_button.pressed.connect(self.play_pause_button)
 
-        self.main_vlayout.addWidget(self.button)
+        self.main_vlayout.addWidget(self.control_button)
 
         self.renderer = vtk.vtkRenderer()
         vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
@@ -171,11 +171,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.is_playing = not self.is_playing
         global timer
         if self.is_playing:
-            self.button.setText("Pause")
+            self.control_button.setText("Pause")
             timer.start(50)
         else:
-            self.button.setText("Play")
+            self.control_button.setText("Play")
             timer.stop()
+
+    def swap_transparent(self):
+        global is_transparent
+        is_transparent = not is_transparent
+
+        if is_transparent:
+            self.transparent_button.setText("Make Transparent")
+        else:
+            self.transparent_button.setText("Make Opaque")
+
+
 
     def add_slot(self, vtk_update):
         self.mode_changed_signal.connect(vtk_update.set_mode)
