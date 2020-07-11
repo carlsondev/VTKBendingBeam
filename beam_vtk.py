@@ -13,7 +13,6 @@ class Node(object):
     num_points_per_poly = 4
 
 
-
     def __init__(self):
 
         self.__polyData = vtk.vtkPolyData()
@@ -25,7 +24,7 @@ class Node(object):
         self.__mapper.SetInputConnection(self.__sphere.GetOutputPort())
         self.__actor.SetUserTransform(self.__transform)
         self.__actor.SetMapper(self.__mapper)
-        self.__actor.GetProperty().SetColor(0, 0, 1)
+        self.__actor.GetProperty().SetColor(1, 0, 0)
 
         # Attributes for rendering the beam shape. Not implemented,
         # but a good next step

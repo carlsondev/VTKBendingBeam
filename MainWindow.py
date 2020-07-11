@@ -1,64 +1,17 @@
-import math
 import vtk
-import sys
-import matplotlib.pyplot as plt
-import numpy as np
-import beam_vtk as bvtk
-from collections import defaultdict
+import beam
 from PyQt5 import QtCore, QtWidgets, QtGui
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
-actors = defaultdict(list)
-
-# @ben: here are alternative mode coefficients you can try out:
-#       0.6 , 1.5,  2.5 , 3.5
-node_count = 21
-x_vals = range(node_count)
-# x_vals = [0, 1, 2, 3]
-t_vals = np.linspace(0, 4 * math.pi, 40).tolist()
-t_val_step = (2 * math.pi) / 40
-current_t_val = 0
-
-mode = 2.5
-mode_max = 3.5
-omega = 1
-is_playing = True
-
-attach_camera_to_node = False
-camera_is_attached = False
-
-timer = QtCore.QTimer()
-is_transparent = True
-
-vtk_widget: QVTKRenderWindowInteractor
-camera = vtk.vtkCamera()
-
-camera_delta_values = [0, 0, 0]
-# Index = 0: Not selecting, 1: Selecting Position, 2: Selecting Focal Point
-selecting_camera_index = 0
-focalActor: vtk.vtkActor
-positionActor: vtk.vtkActor
-
-
-
 class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
 
-    def __init__(self, main_window, parent=None):
+    def __init__(self, parent=None):
         self.AddObserver("LeftButtonPressEvent", self.leftButtonPressEvent)
-        self.main_window = main_window
+
         self.LastPickedActor = None
         self.LastPickedProperty = vtk.vtkProperty()
 
     def leftButtonPressEvent(self, obj, event):
-
-        global attach_camera_to_node
-        global camera_is_attached
-        global camera
-        global selecting_camera_index
-        global positionActor
-        global focalActor
-        global vtk_widget
-
         clickPos = self.GetInteractor().GetEventPosition()
 
         picker = vtk.vtkPropPicker()
@@ -83,35 +36,25 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
                 return
 
             # Highlight the picked actor by changing its properties
-            self.NewPickedActor.GetProperty().SetColor(0.0, 0.0, 1.0)
+            self.NewPickedActor.GetProperty().SetColor(1.0, 0.0, 0.0)
             self.NewPickedActor.GetProperty().SetDiffuse(1.0)
             self.NewPickedActor.GetProperty().SetSpecular(0.0)
-
-            if attach_camera_to_node and not camera_is_attached:
-                selecting_camera_index += 1
-                if selecting_camera_index == 1:
-                    # Adding Position Point
-                    positionActor = self.NewPickedActor
-                    self.main_window.attach_cam_label.setText("Click node to set focal point")
-                    return
-
-                if selecting_camera_index == 2:
-                    focalActor = self.NewPickedActor
-                    self.main_window.attach_cam_label.setText("")
-
-                pos_center = positionActor.GetCenter()
-                focal_center = focalActor.GetCenter()
-                selecting_camera_index = 0
-                camera_is_attached = True
-                camera.SetPosition(np.add(pos_center, camera_delta_values))
-                camera.SetFocalPoint(focal_center)
-                vtk_widget.GetRenderWindow().Render()
-                return
 
             actor_center = self.NewPickedActor.GetCenter()
             actor_x = actor_center[0]
             actor_y = actor_center[1]
             actor_z = actor_center[2]
+
+            if beam.attach_camera_to_node and not beam.camera_is_attached:
+                beam.camera_is_attached = True
+                d_vals = beam.camera_delta_values
+                beam.camera.SetPosition(actor_x,
+                                   actor_y,
+                                   actor_z)
+                beam.camera.SetFocalPoint(actor_x + d_vals[0],
+                                          actor_y + d_vals[1],
+                                          actor_z + d_vals[2])
+                return
 
             msgBox = QtWidgets.QMessageBox()
             msgBox.setText("X: {}\nY: {}\nZ: {}".format(actor_x, actor_y, actor_z))
@@ -128,7 +71,6 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
         self.OnLeftButtonDown()
         return
 
-
 class MainWindow(QtWidgets.QMainWindow):
     is_playing: bool = False
     renderer = None
@@ -140,13 +82,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
 
-        global vtk_widget
-
         self.frame = QtWidgets.QFrame()
 
         self.main_vlayout = QtWidgets.QVBoxLayout()
-        vtk_widget = QVTKRenderWindowInteractor(self.frame)
-        self.main_vlayout.addWidget(vtk_widget)
+        beam.vtk_widget = QVTKRenderWindowInteractor(self.frame)
+        self.main_vlayout.addWidget(beam.vtk_widget)
 
         self.setup_mode_slider()
         self.setup_omega_slider()
@@ -157,30 +97,22 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.main_vlayout.addWidget(self.control_button)
 
-
-        self.attach_camera_layout = QtWidgets.QHBoxLayout()
-
         self.attach_camera_button = QtWidgets.QPushButton("Attach Camera To Node")
         self.attach_camera_button.pressed.connect(self.attach_camera)
-        self.attach_camera_layout.addWidget(self.attach_camera_button)
 
-        self.attach_cam_label = QtWidgets.QLabel()
-        self.attach_cam_label.setText("")
-        self.attach_camera_layout.addWidget(self.attach_cam_label)
-
-        self.main_vlayout.addLayout(self.attach_camera_layout)
+        self.main_vlayout.addWidget(self.attach_camera_button)
 
         self.setup_camera_delta_layout()
 
         self.renderer = vtk.vtkRenderer()
-        vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
-        self.interactor = vtk_widget.GetRenderWindow().GetInteractor()
-        self.window = vtk_widget.GetRenderWindow()
+        beam.vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
+        self.interactor = beam.vtk_widget.GetRenderWindow().GetInteractor()
+        self.window = beam.vtk_widget.GetRenderWindow()
 
         self.frame.setLayout(self.main_vlayout)
         self.setCentralWidget(self.frame)
 
-        style = MouseInteractorHighLightActor(self)
+        style = MouseInteractorHighLightActor()
         style.SetDefaultRenderer(self.renderer)
         self.interactor.SetInteractorStyle(style)
 
@@ -202,7 +134,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mode_slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
         self.mode_slider.setTickInterval(1)
 
-        normalized_val = (mode / mode_max) * 100
+        normalized_val = (beam.mode / beam.mode_max) * 100
         self.mode_slider.setValue(int(normalized_val))
 
         self.mode_slider.valueChanged.connect(self.mode_value_change)
@@ -269,43 +201,38 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_vlayout.addLayout(self.delta_layout)
 
     def set_delta_values(self, value, dx_index):
-        global camera_delta_values
-        camera_delta_values[dx_index] = value
+        beam.camera_delta_values[dx_index] = value
+        print(beam.camera_delta_values)
 
     def play_pause_button(self):
         self.is_playing = not self.is_playing
-        global timer
+
         if self.is_playing:
             self.control_button.setText("Pause")
-            timer.start(50)
+            beam.timer.start(50)
         else:
             self.control_button.setText("Play")
-            timer.stop()
+            beam.timer.stop()
 
     def attach_camera(self):
-        global attach_camera_to_node
-        global camera_is_attached
-        global camera
 
-        attach_camera_to_node = not attach_camera_to_node
-        print(camera.GetPosition())
-        print(camera.GetFocalPoint())
+        beam.attach_camera_to_node = not beam.attach_camera_to_node
+        print(beam.camera.GetPosition())
 
-        if camera_is_attached:
-            camera_is_attached = False
-            reset_camera_position()
-
-        if attach_camera_to_node:
+        if beam.attach_camera_to_node:
             self.attach_camera_button.setText("Remove Camera From Node")
-            self.attach_cam_label.setText("Click node to set camera position")
         else:
             self.attach_camera_button.setText("Attach Camera To Node")
 
-    def swap_transparent(self):
-        global is_transparent
-        is_transparent = not is_transparent
+        beam.camera_is_attached = False
+        beam.camera.SetPosition(0, 0, 1)
 
-        if is_transparent:
+
+
+    def swap_transparent(self):
+        beam.is_transparent = not beam.is_transparent
+
+        if beam.is_transparent:
             self.transparent_button.setText("Make Transparent")
         else:
             self.transparent_button.setText("Make Opaque")
@@ -317,91 +244,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.omega_changed_signal.connect(vtk_update.set_omega)
 
     def mode_value_change(self, value):
-        global mode
-        mode = (value / 100) * mode_max
-        self.mode_changed_signal.emit(mode)
-        print("mode changed: ", mode)
+        beam.mode = (value / 100) * beam.mode_max
+        self.mode_changed_signal.emit(beam.mode)
+        print("mode changed: ", beam.mode)
 
     def omega_value_change(self, value):
-        global omega
-        omega = value
-        self.omega_changed_signal.emit(omega)
-        print("omega changed: ", omega)
-
-
-def displacement(mode, x):
-    beta = math.pi * mode
-    r = beta * x
-    try:
-        k = (math.cos(beta) + math.cosh(beta) / (math.sin(beta) + math.sinh(beta)))
-        return (math.cosh(r) - math.cos(r) + k * (math.sin(r) - math.sinh(r)))
-    except ZeroDivisionError:
-        return 0.0
-
-def reset_camera_position():
-    camera.SetPosition(node_count/2, 30, 30)
-    camera.SetFocalPoint(node_count/2, 0, 0)
-
-def beam_deflection(t_val):
-    return [displacement(mode, pos / x_vals[-1]) * math.sin(omega * t_val) for pos in x_vals]
-
-
-def generate_plot(t, x):
-    for i, time in enumerate(t):
-        y = beam_deflection(time)
-        plt.figure(1)
-
-        if i == 3:
-            plt.plot(x, y, 'bo-')
-        else:
-            plt.plot(x, y, 'k-', alpha=0.1)
-
-    plt.xlabel('x distance on beam')
-    plt.ylabel('y(x,t) displacement')
-    plt.grid(True)
-    plt.show(block=False)
-
-
-def generate_vtk(t_vals, x):
-    N = len(x)
-    N -= 1
-
-    app = QtWidgets.QApplication(sys.argv)
-    main_window = MainWindow()
-
-    # bvtk.Node and bvtk.Line are custom objects to make reuse of mappings/actors
-    # convenient and less messy.
-    nodes = [bvtk.Node() for i in range(N)]
-
-    y = beam_deflection(10)  # grabbing an arbitrary time to create deflected beam state
-    for i in range(N):
-
-        if i < (N - 1):
-            # Updates position ahead of time to render next node height
-            nodes[i + 1].update_position(x[i + 1], y[i + 1], 0)
-            next_node = nodes[i + 1]
-        else:
-            next_node = nodes[i - 1]
-
-        # Generates all node specific actors and adds to renderer
-        nodes[i].add_poly_actor_to_renderer(main_window.renderer, next_node, x[i], y[i])
-
-    main_window.window.Render()
-
-    cb = bvtk.vtkUpdate(main_window.window, 0, nodes)
-    main_window.add_slot(cb)
-    # main_window.interactor.AddObserver('TimerEvent', cb.execute)
-    # cb.timerId = main_window.interactor.CreateRepeatingTimer(150)
-    timer.timeout.connect(cb.execute)
-    timer.start(50)
-
-    # # Sign up to receive TimerEvent
-    reset_camera_position()
-    main_window.renderer.SetActiveCamera(camera)
-
-    sys.exit(app.exec_())
-
-
-if __name__ == "__main__":
-    # generate_plot(t_vals, x_vals)
-    generate_vtk(t_vals, x_vals)
+        beam.omega = value
+        self.omega_changed_signal.emit(beam.omega)
+        print("omega changed: ", beam.omega)
