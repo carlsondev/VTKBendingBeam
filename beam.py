@@ -12,7 +12,7 @@ actors = defaultdict(list)
 
 # @ben: here are alternative mode coefficients you can try out:
 #       0.6 , 1.5,  2.5 , 3.5
-node_count = 21
+node_count = 11
 x_vals = range(node_count)
 # x_vals = [0, 1, 2, 3]
 t_vals = np.linspace(0, 4 * math.pi, 40).tolist()
@@ -39,15 +39,32 @@ selecting_camera_index = 0
 focalActor: vtk.vtkActor
 positionActor: vtk.vtkActor
 
+update_slot = None
+
 
 
 class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
 
     def __init__(self, main_window, parent=None):
         self.AddObserver("LeftButtonPressEvent", self.leftButtonPressEvent)
+        self.AddObserver("KeyPressEvent", self.key_pressed)
         self.main_window = main_window
         self.LastPickedActor = None
         self.LastPickedProperty = vtk.vtkProperty()
+
+    def key_pressed(self, renderer, event):
+        global camera
+        key = self.GetInteractor().GetKeySym()
+        azi_step = 2
+        ele_step = 2
+        if key == "Left":
+            camera.Roll(azi_step)
+        if key == "Right":
+            camera.Roll(-azi_step)
+        if key == "Up":
+            camera.Elevation(ele_step)
+        if key == "Down":
+            camera.Elevation(-ele_step)
 
     def leftButtonPressEvent(self, obj, event):
 
@@ -58,6 +75,7 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
         global positionActor
         global focalActor
         global vtk_widget
+        global update_slot
 
         clickPos = self.GetInteractor().GetEventPosition()
 
@@ -92,10 +110,12 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
                 if selecting_camera_index == 1:
                     # Adding Position Point
                     positionActor = self.NewPickedActor
+                    update_slot.set_camera_pos_actor(positionActor, camera)
                     self.main_window.attach_cam_label.setText("Click node to set focal point")
                     return
 
                 if selecting_camera_index == 2:
+                    # Adding Focal Point
                     focalActor = self.NewPickedActor
                     self.main_window.attach_cam_label.setText("")
 
@@ -136,6 +156,7 @@ class MainWindow(QtWidgets.QMainWindow):
     window = None
     mode_changed_signal = QtCore.pyqtSignal(float)
     omega_changed_signal = QtCore.pyqtSignal(float)
+    cam_azimuth_val = 0
 
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
@@ -171,6 +192,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_vlayout.addLayout(self.attach_camera_layout)
 
         self.setup_camera_delta_layout()
+
+        self.reset_button = QtWidgets.QPushButton("Reset Camera Position")
+        self.reset_button.pressed.connect(self.reset_cam_position)
+        self.main_vlayout.addWidget(self.reset_button)
 
         self.renderer = vtk.vtkRenderer()
         vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
@@ -245,32 +270,44 @@ class MainWindow(QtWidgets.QMainWindow):
         self.delta_layout.addWidget(self.dx_label)
 
         self.dx_box = QtWidgets.QSpinBox()
+        self.dx_box.setMinimum(-0x80000000)
         self.dx_box.valueChanged[int].connect(lambda value: self.set_delta_values(value, 0))
         self.delta_layout.addWidget(self.dx_box)
 
-        self.dx_label = QtWidgets.QLabel()
-        self.dx_label.setText("Dy: ")
-        self.dx_label.setAlignment(QtCore.Qt.AlignLeft)
-        self.delta_layout.addWidget(self.dx_label)
+        self.dy_label = QtWidgets.QLabel()
+        self.dy_label.setText("Dy: ")
+        self.dy_label.setAlignment(QtCore.Qt.AlignLeft)
+        self.delta_layout.addWidget(self.dy_label)
 
-        self.dx_box = QtWidgets.QSpinBox()
-        self.dx_box.valueChanged[int].connect(lambda value: self.set_delta_values(value, 1))
-        self.delta_layout.addWidget(self.dx_box)
+        self.dy_box = QtWidgets.QSpinBox()
+        self.dy_box.setMinimum(-0x80000000)
+        self.dy_box.valueChanged[int].connect(lambda value: self.set_delta_values(value, 1))
+        self.delta_layout.addWidget(self.dy_box)
 
-        self.dx_label = QtWidgets.QLabel()
-        self.dx_label.setText("Dz: ")
-        self.dx_label.setAlignment(QtCore.Qt.AlignLeft)
-        self.delta_layout.addWidget(self.dx_label)
+        self.dz_label = QtWidgets.QLabel()
+        self.dz_label.setText("Dz: ")
+        self.dz_label.setAlignment(QtCore.Qt.AlignLeft)
+        self.delta_layout.addWidget(self.dz_label)
 
-        self.dx_box = QtWidgets.QSpinBox()
-        self.dx_box.valueChanged[int].connect(lambda value: self.set_delta_values(value, 2))
-        self.delta_layout.addWidget(self.dx_box)
+        self.dz_box = QtWidgets.QSpinBox()
+        self.dz_box.setMinimum(-0x80000000)
+        self.dz_box.valueChanged[int].connect(lambda value: self.set_delta_values(value, 2))
+        self.delta_layout.addWidget(self.dz_box)
 
         self.main_vlayout.addLayout(self.delta_layout)
 
     def set_delta_values(self, value, dx_index):
         global camera_delta_values
+        global update_slot
         camera_delta_values[dx_index] = value
+        update_slot.set_camera_delta_vals(camera_delta_values)
+
+    def reset_cam_position(self):
+        global camera
+
+        #Set default position
+        camera.SetPosition(node_count / 2, 30, 30)
+        camera.SetFocalPoint(node_count / 2, 0, 0)
 
     def play_pause_button(self):
         self.is_playing = not self.is_playing
@@ -288,12 +325,16 @@ class MainWindow(QtWidgets.QMainWindow):
         global camera
 
         attach_camera_to_node = not attach_camera_to_node
-        print(camera.GetPosition())
-        print(camera.GetFocalPoint())
+        print("Camera Position: ", camera.GetPosition())
+        print("Camera Focal Point: ", camera.GetFocalPoint())
 
+        #Remove from node
         if camera_is_attached:
             camera_is_attached = False
-            reset_camera_position()
+            global update_slot
+
+            # Unpin from node
+            update_slot.set_camera_pos_actor(None, None)
 
         if attach_camera_to_node:
             self.attach_camera_button.setText("Remove Camera From Node")
@@ -388,11 +429,12 @@ def generate_vtk(t_vals, x):
 
     main_window.window.Render()
 
-    cb = bvtk.vtkUpdate(main_window.window, 0, nodes)
-    main_window.add_slot(cb)
+    global update_slot
+    update_slot = bvtk.vtkUpdate(main_window.window, 0, nodes)
+    main_window.add_slot(update_slot)
     # main_window.interactor.AddObserver('TimerEvent', cb.execute)
     # cb.timerId = main_window.interactor.CreateRepeatingTimer(150)
-    timer.timeout.connect(cb.execute)
+    timer.timeout.connect(update_slot.execute)
     timer.start(50)
 
     # # Sign up to receive TimerEvent

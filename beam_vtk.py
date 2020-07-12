@@ -277,6 +277,9 @@ class vtkUpdate:
         self.x_index = x_index
         self.nodes = nodes
         self.ren_window = render_window
+        self.cam_position_actor = None
+        self.camera = None
+        self.d_vals = [0, 0, 0]
 
     def set_mode(self, val):
         beam.mode = val
@@ -284,13 +287,20 @@ class vtkUpdate:
     def set_omega(self, val):
         beam.omega = val
 
+    def set_camera_pos_actor(self, actor, camera):
+        self.cam_position_actor = actor
+        self.camera = camera
+
+    def set_camera_delta_vals(self, deltas):
+        self.d_vals = deltas
+
     def execute(self):
 
         i = self.x_index
         y = beam.beam_deflection(beam.current_t_val)
 
-
         for i in range(len(self.nodes)):
+
             node = self.nodes[i]
 
             next_node = None
@@ -301,6 +311,12 @@ class vtkUpdate:
 
             node.update_position(i, y[i], 0)
             node.update_polygon_position(y[i], next_node)
+
+            d_vals = beam.camera_delta_values
+
+            if (self.cam_position_actor is not None) and (self.camera is not None):
+                if self.cam_position_actor.GetCenter()[0] == i:
+                    self.camera.SetPosition(i+self.d_vals[0], y[i]+self.d_vals[1], self.d_vals[2])
 
 
         beam.current_t_val+=beam.t_val_step

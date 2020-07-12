@@ -1,4 +1,4 @@
-#!/Users/fibonacci/VTK-Tests/venv/bin/python
+#!/Users/fibonacci/VTK-Tests/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
