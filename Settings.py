@@ -11,7 +11,6 @@ actors = defaultdict(list)
 #       0.6 , 1.5,  2.5 , 3.5
 node_count = 21
 x_vals = range(node_count)
-# x_vals = [0, 1, 2, 3]
 t_vals = np.linspace(0, 4 * math.pi, 40).tolist()
 t_val_step = (2 * math.pi) / 40
 current_t_val = 0
@@ -23,17 +22,16 @@ is_playing = True
 
 attach_camera_to_node = False
 camera_is_attached = False
-
-timer = QtCore.QTimer()
-is_transparent = True
-
-vtk_widget: QVTKRenderWindowInteractor
 camera = vtk.vtkCamera()
-
 camera_delta_values = [0, 0, 0]
+
 # Index = 0: Not selecting, 1: Selecting Position, 2: Selecting Focal Point
 selecting_camera_index = 0
 focalActor: vtk.vtkActor
 positionActor: vtk.vtkActor
+
+timer = QtCore.QTimer()
+
+vtk_widget: QVTKRenderWindowInteractor
 
 update_slot = None

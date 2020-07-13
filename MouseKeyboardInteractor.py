@@ -3,14 +3,16 @@ import numpy as np
 from PyQt5 import QtWidgets
 import Settings
 
-class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
+
+class MouseKeyboardInteractor(vtk.vtkInteractorStyleTrackballCamera):
 
     def __init__(self, main_window, parent=None):
-        self.AddObserver("LeftButtonPressEvent", self.leftButtonPressEvent)
+        self.AddObserver("LeftButtonPressEvent", self.left_button_pressed)
         self.AddObserver("KeyPressEvent", self.key_pressed)
         self.main_window = main_window
-        self.LastPickedActor = None
-        self.LastPickedProperty = vtk.vtkProperty()
+        self.last_picked_actor = None
+        self.new_actor = None
+        self.last_picked_property = vtk.vtkProperty()
 
     def key_pressed(self, renderer, event):
         key = self.GetInteractor().GetKeySym()
@@ -25,48 +27,48 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
         if key == "Down":
             Settings.camera.Elevation(-ele_step)
 
-    def leftButtonPressEvent(self, obj, event):
+    def left_button_pressed(self, obj, event):
 
-        clickPos = self.GetInteractor().GetEventPosition()
+        click_pos = self.GetInteractor().GetEventPosition()
 
         picker = vtk.vtkPropPicker()
-        picker.Pick(clickPos[0], clickPos[1], 0, self.GetDefaultRenderer())
+        picker.Pick(click_pos[0], click_pos[1], 0, self.GetDefaultRenderer())
 
         # get the new actor
-        self.NewPickedActor = picker.GetActor()
+        self.new_actor = picker.GetActor()
 
         # If something was selected
-        if self.NewPickedActor:
+        if self.new_actor:
             # If we picked something before, reset its property
-            if self.LastPickedActor:
-                self.LastPickedActor.GetProperty().DeepCopy(self.LastPickedProperty)
+            if self.last_picked_actor:
+                self.last_picked_actor.GetProperty().DeepCopy(self.last_picked_property)
 
             # Save the property of the picked actor so that we can
             # restore it next time
-            self.LastPickedProperty.DeepCopy(self.NewPickedActor.GetProperty())
+            self.last_picked_property.DeepCopy(self.new_actor.GetProperty())
 
             # Allows selection only for nodes
-            producer = self.NewPickedActor.GetMapper().GetInputConnection(0, 0).GetProducer()
+            producer = self.new_actor.GetMapper().GetInputConnection(0, 0).GetProducer()
             if type(producer) is not vtk.vtkSphereSource:
                 return
 
             # Highlight the picked actor by changing its properties
-            self.NewPickedActor.GetProperty().SetColor(0.0, 0.0, 1.0)
-            self.NewPickedActor.GetProperty().SetDiffuse(1.0)
-            self.NewPickedActor.GetProperty().SetSpecular(0.0)
+            self.new_actor.GetProperty().SetColor(0.0, 0.0, 1.0)
+            self.new_actor.GetProperty().SetDiffuse(1.0)
+            self.new_actor.GetProperty().SetSpecular(0.0)
 
             if Settings.attach_camera_to_node and not Settings.camera_is_attached:
                 Settings.selecting_camera_index += 1
                 if Settings.selecting_camera_index == 1:
                     # Adding Position Point
-                    Settings.positionActor = self.NewPickedActor
+                    Settings.positionActor = self.new_actor
                     Settings.update_slot.set_camera_pos_actor(Settings.positionActor, Settings.camera)
                     self.main_window.attach_cam_label.setText("Click node to set focal point")
                     return
 
                 if Settings.selecting_camera_index == 2:
                     # Adding Focal Point
-                    Settings.focalActor = self.NewPickedActor
+                    Settings.focalActor = self.new_actor
                     self.main_window.attach_cam_label.setText("")
 
                 pos_center = Settings.positionActor.GetCenter()
@@ -78,22 +80,22 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
                 Settings.vtk_widget.GetRenderWindow().Render()
                 return
 
-            actor_center = self.NewPickedActor.GetCenter()
+            actor_center = self.new_actor.GetCenter()
             actor_x = actor_center[0]
             actor_y = actor_center[1]
             actor_z = actor_center[2]
 
-            msgBox = QtWidgets.QMessageBox()
-            msgBox.setText("X: {}\nY: {}\nZ: {}".format(actor_x, actor_y, actor_z))
+            msg_box = QtWidgets.QMessageBox()
+            msg_box.setText("X: {}\nY: {}\nZ: {}".format(actor_x, actor_y, actor_z))
 
-            msgBox.setIcon(QtWidgets.QMessageBox.Information)
-            msgBox.setWindowTitle("Node Info")
-            msgBox.setStandardButtons(QtWidgets.QMessageBox.Cancel)
+            msg_box.setIcon(QtWidgets.QMessageBox.Information)
+            msg_box.setWindowTitle("Node Info")
+            msg_box.setStandardButtons(QtWidgets.QMessageBox.Cancel)
 
-            returnValue = msgBox.exec()
+            returnValue = msg_box.exec()
 
             # save the last picked actor
-            self.LastPickedActor = self.NewPickedActor
+            self.last_picked_actor = self.new_actor
 
         self.OnLeftButtonDown()
         return

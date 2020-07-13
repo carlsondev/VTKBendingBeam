@@ -1,8 +1,9 @@
 from PyQt5 import QtCore, QtWidgets
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-from MouseInteractorHighLightActor import MouseInteractorHighLightActor
+from MouseKeyboardInteractor import MouseKeyboardInteractor
 import vtk
 import Settings
+
 
 class MainWindow(QtWidgets.QMainWindow):
     is_playing: bool = False
@@ -22,16 +23,17 @@ class MainWindow(QtWidgets.QMainWindow):
         Settings.vtk_widget = QVTKRenderWindowInteractor(self.frame)
         self.main_vlayout.addWidget(Settings.vtk_widget)
 
+        # Setup Sliders
         self.setup_mode_slider()
         self.setup_omega_slider()
 
-
+        # Setup Play/Pause Button
         self.control_button = QtWidgets.QPushButton("Pause")
         self.control_button.pressed.connect(self.play_pause_button)
 
         self.main_vlayout.addWidget(self.control_button)
 
-
+        # Set up attach camera UI
         self.attach_camera_layout = QtWidgets.QHBoxLayout()
 
         self.attach_camera_button = QtWidgets.QPushButton("Attach Camera To Node")
@@ -44,12 +46,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.main_vlayout.addLayout(self.attach_camera_layout)
 
+        # Setup Camera Delta Value Input
         self.setup_camera_delta_layout()
 
+        # Add Camera Position Reset Button
         self.reset_button = QtWidgets.QPushButton("Reset Camera Position")
-        self.reset_button.pressed.connect(self.reset_cam_position)
+        self.reset_button.pressed.connect(self.reset_camera_position)
         self.main_vlayout.addWidget(self.reset_button)
 
+        # Setup Window with layout
         self.renderer = vtk.vtkRenderer()
         Settings.vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
         self.interactor = Settings.vtk_widget.GetRenderWindow().GetInteractor()
@@ -58,7 +63,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.frame.setLayout(self.main_vlayout)
         self.setCentralWidget(self.frame)
 
-        style = MouseInteractorHighLightActor(self)
+        style = MouseKeyboardInteractor(self)
         style.SetDefaultRenderer(self.renderer)
         self.interactor.SetInteractorStyle(style)
 
@@ -115,6 +120,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setup_camera_delta_layout(self):
 
+        minimum_val = -0x80000000
+
         self.delta_layout = QtWidgets.QHBoxLayout()
 
         self.dx_label = QtWidgets.QLabel()
@@ -123,7 +130,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.delta_layout.addWidget(self.dx_label)
 
         self.dx_box = QtWidgets.QSpinBox()
-        self.dx_box.setMinimum(-0x80000000)
+        self.dx_box.setMinimum(minimum_val)
         self.dx_box.valueChanged[int].connect(lambda value: self.set_delta_values(value, 0))
         self.delta_layout.addWidget(self.dx_box)
 
@@ -133,7 +140,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.delta_layout.addWidget(self.dy_label)
 
         self.dy_box = QtWidgets.QSpinBox()
-        self.dy_box.setMinimum(-0x80000000)
+        self.dy_box.setMinimum(minimum_val)
         self.dy_box.valueChanged[int].connect(lambda value: self.set_delta_values(value, 1))
         self.delta_layout.addWidget(self.dy_box)
 
@@ -143,7 +150,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.delta_layout.addWidget(self.dz_label)
 
         self.dz_box = QtWidgets.QSpinBox()
-        self.dz_box.setMinimum(-0x80000000)
+        self.dz_box.setMinimum(minimum_val)
         self.dz_box.valueChanged[int].connect(lambda value: self.set_delta_values(value, 2))
         self.delta_layout.addWidget(self.dz_box)
 
@@ -154,9 +161,9 @@ class MainWindow(QtWidgets.QMainWindow):
         Settings.camera_delta_values[dx_index] = value
         Settings.update_slot.set_camera_delta_vals(Settings.camera_delta_values)
 
-    def reset_cam_position(self):
+    def reset_camera_position(self):
 
-        #Set default position
+        # Set default position
         Settings.camera.SetPosition(Settings.node_count / 2, 30, 30)
         Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
 
@@ -176,7 +183,7 @@ class MainWindow(QtWidgets.QMainWindow):
         print("Camera Position: ", Settings.camera.GetPosition())
         print("Camera Focal Point: ", Settings.camera.GetFocalPoint())
 
-        #Remove from node
+        # Remove from node
         if Settings.camera_is_attached:
             Settings.camera_is_attached = False
 
@@ -196,8 +203,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.transparent_button.setText("Make Transparent")
         else:
             self.transparent_button.setText("Make Opaque")
-
-
 
     def add_slot(self, vtk_update):
         self.mode_changed_signal.connect(vtk_update.set_mode)
