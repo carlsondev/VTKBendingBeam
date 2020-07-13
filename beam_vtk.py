@@ -272,6 +272,7 @@ class vtkUpdate:
         self.nodes = nodes
         self.ren_window = render_window
         self.cam_position_actor = None
+        self.cam_focal_actor = None
         self.camera = None
         self.d_vals = [0, 0, 0]
 
@@ -281,8 +282,9 @@ class vtkUpdate:
     def set_omega(self, val):
         Settings.omega = val
 
-    def set_camera_pos_actor(self, actor, camera):
-        self.cam_position_actor = actor
+    def set_camera_pos_actor(self, pos_actor, foc_actor, camera):
+        self.cam_position_actor = pos_actor
+        self.cam_focal_actor = foc_actor
         self.camera = camera
 
     def set_camera_delta_vals(self, deltas):
@@ -306,11 +308,17 @@ class vtkUpdate:
             node.update_position(i, y[i], 0)
             node.update_polygon_position(y[i], next_node)
 
-            if (self.cam_position_actor is not None) and (Settings.camera is not None):
-                if self.cam_position_actor.GetCenter()[0] == i:
-                    Settings.camera.SetPosition(i+self.d_vals[0], y[i]+self.d_vals[1], self.d_vals[2])
-                    print("Camera Pos: ", Settings.camera.GetPosition())
-                    print(i)
+            if Settings.camera is not None:
+                if self.cam_position_actor is not None:
+                    if self.cam_position_actor.GetCenter()[0] == i:
+                        Settings.camera.SetPosition(i+self.d_vals[0], y[i]+self.d_vals[1], self.d_vals[2])
+                        print("Camera Pos: ", Settings.camera.GetPosition())
+                        print(i)
+                if self.cam_focal_actor is not None:
+                    if self.cam_focal_actor.GetCenter()[0] == i:
+                        Settings.camera.SetFocalPoint(node.get_actor().GetCenter())
+                        print("Camera Focal: ", Settings.camera.GetFocalPoint())
+                        print(i)
         Settings.current_t_val += Settings.t_val_step
         # print("Current Time: ", beam.current_t_val)
 

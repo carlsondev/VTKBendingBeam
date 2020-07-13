@@ -62,13 +62,24 @@ class MouseKeyboardInteractor(vtk.vtkInteractorStyleTrackballCamera):
                 if Settings.selecting_camera_index == 1:
                     # Adding Position Point
                     Settings.positionActor = self.new_actor
-                    Settings.update_slot.set_camera_pos_actor(Settings.positionActor, Settings.camera)
                     self.main_window.attach_cam_label.setText("Click node to set focal point")
                     return
 
                 if Settings.selecting_camera_index == 2:
                     # Adding Focal Point
+                    if self.new_actor == Settings.positionActor:
+                        msg_box = QtWidgets.QMessageBox()
+                        msg_box.setText("Can not select focal point at position node!")
+                        msg_box.setIcon(QtWidgets.QMessageBox.Information)
+                        msg_box.setWindowTitle("Error!")
+                        msg_box.setStandardButtons(QtWidgets.QMessageBox.Cancel)
+                        msg_box.exec()
+
+                        Settings.selecting_camera_index -= 1
+                        return
+
                     Settings.focalActor = self.new_actor
+                    Settings.update_slot.set_camera_pos_actor(Settings.positionActor, Settings.focalActor, Settings.camera)
                     self.main_window.attach_cam_label.setText("")
 
                 pos_center = Settings.positionActor.GetCenter()

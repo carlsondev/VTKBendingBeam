@@ -248,7 +248,7 @@ class MainWindow(QtWidgets.QMainWindow):
             Settings.camera_is_attached = False
 
             # Unpin from node
-            Settings.update_slot.set_camera_pos_actor(None, None)
+            Settings.update_slot.set_camera_pos_actor(None, None, None)
 
         if Settings.attach_camera_to_node:
             self.attach_camera_button.setText("Remove Camera From Node")
