@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from MouseKeyboardInteractor import MouseKeyboardInteractor
 import vtk
@@ -18,6 +18,8 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self, parent)
 
         self.frame = QtWidgets.QFrame()
+
+        self.setup_menubar()
 
         self.main_vlayout = QtWidgets.QVBoxLayout()
         Settings.vtk_widget = QVTKRenderWindowInteractor(self.frame)
@@ -69,7 +71,65 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.interactor.Initialize()
         self.interactor.Start()
+        self.interactor.Render()
         self.show()
+
+    def setup_menubar(self):
+        xy_perspective = QtWidgets.QAction("XY", self)
+        xy_perspective.setStatusTip("Set XY Perspective")
+        xy_perspective.triggered.connect(self.set_xy_perspective)
+
+        yz_perspective = QtWidgets.QAction("YZ", self)
+        yz_perspective.setStatusTip("Set YZ Perspective")
+        yz_perspective.triggered.connect(self.set_yz_perspective)
+
+        xz_perspective = QtWidgets.QAction("XZ", self)
+        xz_perspective.setStatusTip("Set XZ Perspective")
+        xz_perspective.triggered.connect(self.set_xz_perspective)
+
+        iso_perspective = QtWidgets.QAction("ISO", self)
+        iso_perspective.setStatusTip("Set Iso Perspective")
+        iso_perspective.triggered.connect(self.set_iso_perspective)
+
+        self.statusBar()
+
+        main_menu = self.menuBar()
+        perspective_menu = main_menu.addMenu('&Perspective')
+
+        perspective_menu.addAction(xy_perspective)
+        perspective_menu.addAction(yz_perspective)
+        perspective_menu.addAction(xz_perspective)
+        perspective_menu.addAction(iso_perspective)
+
+    def set_xy_perspective(self):
+        print("XY")
+        z_offset = 30
+        Settings.camera.SetPosition(Settings.node_count / 2, 0, z_offset)
+        Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
+        Settings.camera.SetRoll(0)
+
+    def set_yz_perspective(self):
+        print("YZ")
+        x_offset = 10
+        Settings.camera.SetPosition(Settings.node_count + x_offset, 0, 0)
+        Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
+        Settings.camera.SetRoll(0)
+
+    def set_xz_perspective(self):
+        print("XZ")
+        y_offset = Settings.node_count*2
+        Settings.camera.SetPosition(Settings.node_count / 2, y_offset, 0)
+        Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
+        Settings.camera.SetRoll(0)
+
+    def set_iso_perspective(self):
+        print("ISO")
+        x_offset = -20
+        z_offset = x_offset
+        y_offset = 10
+        Settings.camera.SetPosition(x_offset, y_offset, -z_offset)
+        Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
+        Settings.camera.SetRoll(0)
 
     def setup_mode_slider(self):
         # Start setup mode slider layout
