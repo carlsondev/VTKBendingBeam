@@ -1,6 +1,7 @@
 import vtk
-import beam
+import Settings
 import math
+from beam import Main
 
 
 class Node(object):
@@ -48,6 +49,8 @@ class Node(object):
         self.__polygons = vtk.vtkCellArray()  # we have 6 sides to each beam box.
         self.__indices = []
         self.__lines = vtk.vtkCellArray()
+
+        self.main_instance = Main.get_instance()
         # This is overgeneralized because a beam
         # is really a shell (4 sides) except for
         # end points. But it is valid for now.
@@ -83,7 +86,7 @@ class Node(object):
 
         # Update nodes polyData
         self.__polyData.SetLines(self.__lines)
-        if not beam.is_transparent:
+        if not Settings.is_transparent:
             self.__polyData.SetPolys(self.__polygons)
         self.__polyData.SetPoints(self.__points)
 
@@ -106,8 +109,8 @@ class Node(object):
         node_y = node_center[1]
 
         #Non rendered last point
-        next_node_x = beam.x_vals[-1]
-        next_node_y = beam.beam_deflection(beam.current_t_val)[next_node_x]
+        next_node_x = Settings.x_vals[-1]
+        next_node_y = self.main_instance.beam_deflection(Settings.current_t_val)[next_node_x]
 
         if nextNode is not None:
             next_node_x = nextNode.get_actor().GetCenter()[0]
@@ -135,8 +138,8 @@ class Node(object):
         node_x = node_center[0]
         node_y = node_center[1]
 
-        next_node_x = beam.x_vals[-1]
-        next_node_y = beam.beam_deflection(beam.current_t_val)[next_node_x]
+        next_node_x = Settings.x_vals[-1]
+        next_node_y = self.main_instance.beam_deflection(Settings.current_t_val)[next_node_x]
 
         if next_node is not None:
             next_node_center = next_node.get_actor().GetCenter()
@@ -167,8 +170,8 @@ class Node(object):
         node_x = node_center[0]
         node_y = node_center[1]
 
-        next_node_x = beam.x_vals[-1]
-        next_node_y = beam.beam_deflection(beam.current_t_val)[next_node_x]
+        next_node_x = Settings.x_vals[-1]
+        next_node_y = self.main_instance.beam_deflection(Settings.current_t_val)[next_node_x]
 
         if next_node is not None:
             next_node_center = next_node.get_actor().GetCenter()
@@ -282,10 +285,10 @@ class vtkUpdate:
         self.d_vals = [0, 0, 0]
 
     def set_mode(self, val):
-        beam.mode = val
+        Settings.mode = val
 
     def set_omega(self, val):
-        beam.omega = val
+        Settings.omega = val
 
     def set_camera_pos_actor(self, actor, camera):
         self.cam_position_actor = actor
@@ -297,7 +300,7 @@ class vtkUpdate:
     def execute(self):
 
         i = self.x_index
-        y = beam.beam_deflection(beam.current_t_val)
+        y = Main.get_instance().beam_deflection(Settings.current_t_val)
 
         for i in range(len(self.nodes)):
 
@@ -312,14 +315,16 @@ class vtkUpdate:
             node.update_position(i, y[i], 0)
             node.update_polygon_position(y[i], next_node)
 
-            d_vals = beam.camera_delta_values
+            d_vals = Settings.camera_delta_values
 
-            if (self.cam_position_actor is not None) and (self.camera is not None):
+            if (self.cam_position_actor is not None) and (Settings.camera is not None):
                 if self.cam_position_actor.GetCenter()[0] == i:
-                    self.camera.SetPosition(i+self.d_vals[0], y[i]+self.d_vals[1], self.d_vals[2])
+                    Settings.camera.SetPosition(i+self.d_vals[0], y[i]+self.d_vals[1], self.d_vals[2])
+                    print("Camera Pos: ", Settings.camera.GetPosition())
+                    print(i)
 
 
-        beam.current_t_val+=beam.t_val_step
+        Settings.current_t_val+=Settings.t_val_step
         #print("Current Time: ", beam.current_t_val)
 
         self.ren_window.Render()
