@@ -311,14 +311,25 @@ class vtkUpdate:
             if Settings.camera is not None:
                 if self.cam_position_actor is not None:
                     if self.cam_position_actor.GetCenter()[0] == i:
-                        Settings.camera.SetPosition(i+self.d_vals[0], y[i]+self.d_vals[1], self.d_vals[2])
-                        print("Camera Pos: ", Settings.camera.GetPosition())
-                        print(i)
+                        self.ren_window.GetRenderers().GetFirstRenderer().ResetCamera()
+                        # pos = self.ren_window.GetRenderers().GetFirstRenderer().GetActiveCamera().GetPosition()
+                        self.ren_window.GetRenderers().GetFirstRenderer().GetActiveCamera().SetPosition(i+self.d_vals[0], y[i]+self.d_vals[1], self.d_vals[2])
+                        # Settings.camera.SetPosition(self.d_vals[0], y[i]+self.d_vals[1], self.d_vals[2])
+                        print("Camera Pos: ")#, Settings.camera.GetPosition())
+                        print(i+self.d_vals[0], y[i]+self.d_vals[1], self.d_vals[2])
                 if self.cam_focal_actor is not None:
                     if self.cam_focal_actor.GetCenter()[0] == i:
-                        Settings.camera.SetFocalPoint(node.get_actor().GetCenter())
-                        print("Camera Focal: ", Settings.camera.GetFocalPoint())
-                        print(i)
+                        self.ren_window.GetRenderers().GetFirstRenderer().GetActiveCamera().SetFocalPoint(node.get_actor().GetCenter())
+                        # Settings.camera.SetFocalPoint(node.get_actor().GetCenter())
+                        print("Camera Focal: ")#, Settings.camera.GetFocalPoint())
+                        # print(i)
+                        
+        if self.cam_position_actor is not None:
+            self.ren_window.GetRenderers().GetFirstRenderer().GetActiveCamera().SetViewUp([0, 1, 0])
+            self.ren_window.GetRenderers().GetFirstRenderer().GetActiveCamera().ParallelProjectionOn()
+            self.ren_window.GetRenderers().GetFirstRenderer().ResetCamera()
+            self.ren_window.GetRenderers().GetFirstRenderer().ResetCameraClippingRange()
+            
         Settings.current_t_val += Settings.t_val_step
         # print("Current Time: ", beam.current_t_val)
 

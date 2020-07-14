@@ -67,7 +67,7 @@ class MouseKeyboardInteractor(vtk.vtkInteractorStyleTrackballCamera):
                 return
 
             # Highlight the picked actor by changing its properties
-            self.new_actor.GetProperty().SetColor(0.0, 0.0, 1.0)
+            self.new_actor.GetProperty().SetColor(1.0, 0.75, 0.0)
             self.new_actor.GetProperty().SetDiffuse(1.0)
             self.new_actor.GetProperty().SetSpecular(0.0)
 
