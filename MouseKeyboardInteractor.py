@@ -1,6 +1,6 @@
 import vtk
 import numpy as np
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore
 import Settings
 
 
@@ -14,18 +14,32 @@ class MouseKeyboardInteractor(vtk.vtkInteractorStyleTrackballCamera):
         self.new_actor = None
         self.last_picked_property = vtk.vtkProperty()
 
+
+
     def key_pressed(self, renderer, event):
         key = self.GetInteractor().GetKeySym()
         azi_step = 2
         ele_step = 2
-        if key == "Left":
-            Settings.camera.Roll(-azi_step)
-        if key == "Right":
-            Settings.camera.Roll(azi_step)
-        if key == "Up":
-            Settings.camera.Elevation(ele_step)
-        if key == "Down":
-            Settings.camera.Elevation(-ele_step)
+        yaw_step = 0.5
+        if self.GetInteractor().GetShiftKey():
+            if key == "Left":
+                Settings.camera.Roll(-azi_step)
+            if key == "Right":
+                Settings.camera.Roll(azi_step)
+            if key == "Up":
+                Settings.camera.Elevation(ele_step)
+            if key == "Down":
+                Settings.camera.Elevation(-ele_step)
+        else:
+            if key == "Left":
+                Settings.camera.Yaw(yaw_step)
+            if key == "Right":
+                Settings.camera.Yaw(-yaw_step)
+            if key == "Up":
+                print(Settings.camera.GetOrientationWXYZ())
+                #Settings.camera.Elevation(ele_step)
+            #if key == "Down":
+                #Settings.camera.Elevation(-ele_step)
 
     def left_button_pressed(self, obj, event):
 

@@ -101,9 +101,39 @@ class MainWindow(QtWidgets.QMainWindow):
         perspective_menu.addAction(xz_perspective)
         perspective_menu.addAction(iso_perspective)
 
+    def display_pov_info_popup(self):
+        msg_box = QtWidgets.QMessageBox()
+        msg_box.setText("Can not set POV, attached to node\nDo you want to remove from node and change POV?")
+        msg_box.setIcon(QtWidgets.QMessageBox.Information)
+        msg_box.setWindowTitle("POV Warning")
+
+        remove_button = msg_box.addButton("Remove", QtWidgets.QMessageBox.YesRole)
+        msg_box.addButton("Cancel", QtWidgets.QMessageBox.NoRole)
+
+        msg_box.exec()
+
+        if msg_box.clickedButton() == remove_button:
+            return True
+
+        return False
+
+    def check_camera_attached(self):
+        if Settings.camera_is_attached:
+            will_remove_anchor = self.display_pov_info_popup()
+            if not will_remove_anchor:
+                return True
+
+            # Remove Camera
+            self.attach_camera()
+
+        return False
+
+
     def set_xy_perspective(self):
         print("XY")
         z_offset = 30
+        if self.check_camera_attached():
+            return
         Settings.camera.SetPosition(Settings.node_count / 2, 0, z_offset)
         Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
         Settings.camera.SetRoll(0)
@@ -111,6 +141,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_yz_perspective(self):
         print("YZ")
         x_offset = 10
+        if self.check_camera_attached():
+            return
         Settings.camera.SetPosition(Settings.node_count + x_offset, 0, 0)
         Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
         Settings.camera.SetRoll(0)
@@ -118,6 +150,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_xz_perspective(self):
         print("XZ")
         y_offset = Settings.node_count*2
+        if self.check_camera_attached():
+            return
         Settings.camera.SetPosition(Settings.node_count / 2, y_offset, 0)
         Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
         Settings.camera.SetRoll(0)
@@ -127,6 +161,8 @@ class MainWindow(QtWidgets.QMainWindow):
         x_offset = -20
         z_offset = x_offset
         y_offset = 10
+        if self.check_camera_attached():
+            return
         Settings.camera.SetPosition(x_offset, y_offset, -z_offset)
         Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
         Settings.camera.SetRoll(0)
