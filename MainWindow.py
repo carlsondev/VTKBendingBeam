@@ -9,7 +9,7 @@ class MainWindow(QtWidgets.QMainWindow):
     is_playing: bool = False
     renderer = None
     interactor = None
-    window = None
+    ren_window = None
     mode_changed_signal = QtCore.pyqtSignal(float)
     omega_changed_signal = QtCore.pyqtSignal(float)
     cam_azimuth_val = 0
@@ -60,7 +60,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.renderer = vtk.vtkRenderer()
         Settings.vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
         self.interactor = Settings.vtk_widget.GetRenderWindow().GetInteractor()
-        self.window = Settings.vtk_widget.GetRenderWindow()
+        self.ren_window = Settings.vtk_widget.GetRenderWindow()
 
         self.frame.setLayout(self.main_vlayout)
         self.setCentralWidget(self.frame)
@@ -73,6 +73,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.interactor.Start()
         self.interactor.Render()
         self.show()
+
+    @property
+    def active_camera(self):
+        return self.ren_window.GetRenderers().GetFirstRenderer().GetActiveCamera()
+
+    def reset_camera(self):
+        self.ren_window.GetRenderers().GetFirstRenderer().ResetCamera()
 
     def setup_menubar(self):
         xy_perspective = QtWidgets.QAction("XY", self)
@@ -134,27 +141,27 @@ class MainWindow(QtWidgets.QMainWindow):
         z_offset = 30
         if self.check_camera_attached():
             return
-        Settings.camera.SetPosition(Settings.node_count / 2, 0, z_offset)
-        Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
-        Settings.camera.SetRoll(0)
+        self.active_camera.SetPosition(Settings.node_count / 2, 0, z_offset)
+        self.active_camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
+        self.active_camera.SetRoll(0)
 
     def set_yz_perspective(self):
         print("YZ")
         x_offset = 10
         if self.check_camera_attached():
             return
-        Settings.camera.SetPosition(Settings.node_count + x_offset, 0, 0)
-        Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
-        Settings.camera.SetRoll(0)
+        self.active_camera.SetPosition(Settings.node_count + x_offset, 0, 0)
+        self.active_camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
+        self.active_camera.SetRoll(0)
 
     def set_xz_perspective(self):
         print("XZ")
         y_offset = Settings.node_count*2
         if self.check_camera_attached():
             return
-        Settings.camera.SetPosition(Settings.node_count / 2, y_offset, 0)
-        Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
-        Settings.camera.SetRoll(0)
+        self.active_camera.SetPosition(Settings.node_count / 2, y_offset, 0)
+        self.active_camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
+        self.active_camera.SetRoll(0)
 
     def set_iso_perspective(self):
         print("ISO")
@@ -163,9 +170,9 @@ class MainWindow(QtWidgets.QMainWindow):
         y_offset = 10
         if self.check_camera_attached():
             return
-        Settings.camera.SetPosition(x_offset, y_offset, -z_offset)
-        Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
-        Settings.camera.SetRoll(0)
+        self.active_camera.SetPosition(x_offset, y_offset, -z_offset)
+        self.active_camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
+        self.active_camera.SetRoll(0)
 
     def setup_mode_slider(self):
         # Start setup mode slider layout
@@ -260,8 +267,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def reset_camera_position(self):
 
         # Set default position
-        Settings.camera.SetPosition(Settings.node_count / 2, 30, 30)
-        Settings.camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
+        self.active_camera.SetPosition(Settings.node_count / 2, 30, 30)
+        self.active_camera.SetFocalPoint(Settings.node_count / 2, 0, 0)
 
     def play_pause_button(self):
         self.is_playing = not self.is_playing
@@ -276,15 +283,15 @@ class MainWindow(QtWidgets.QMainWindow):
     def attach_camera(self):
 
         Settings.attach_camera_to_node = not Settings.attach_camera_to_node
-        print("Camera Position: ", Settings.camera.GetPosition())
-        print("Camera Focal Point: ", Settings.camera.GetFocalPoint())
+        print("Camera Position: ", self.active_camera.GetPosition())
+        print("Camera Focal Point: ", self.active_camera.GetFocalPoint())
 
         # Remove from node
         if Settings.camera_is_attached:
             Settings.camera_is_attached = False
 
             # Unpin from node
-            Settings.update_slot.set_camera_pos_actor(None, None, None)
+            Settings.update_slot.set_camera_pos_actor(None, None)
 
         if Settings.attach_camera_to_node:
             self.attach_camera_button.setText("Remove Camera From Node")

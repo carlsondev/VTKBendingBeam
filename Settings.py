@@ -22,7 +22,6 @@ is_playing = True
 
 attach_camera_to_node = False
 camera_is_attached = False
-camera = vtk.vtkCamera()
 camera_delta_values = [0, 0, 0]
 
 # Index = 0: Not selecting, 1: Selecting Position, 2: Selecting Focal Point

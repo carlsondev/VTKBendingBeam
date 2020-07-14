@@ -41,6 +41,13 @@ class Main:
         plt.show(block=False)
 
     @staticmethod
+
+
+    @staticmethod
+    def get_active_camera(ren_window):
+        ren_window.GetRenderers().GetFirstRenderer().GetActiveCamera()
+
+    @staticmethod
     def generate_vtk(t_vals, x):
         N = len(x)
         N -= 1
@@ -65,9 +72,9 @@ class Main:
             # Generates all node specific actors and adds to renderer
             nodes[i].add_poly_actor_to_renderer(main_window.renderer, next_node, x[i], y[i])
 
-        main_window.window.Render()
+        main_window.ren_window.Render()
 
-        Settings.update_slot = bvtk.vtkUpdate(main_window.window, 0, nodes)
+        Settings.update_slot = bvtk.vtkUpdate(main_window, 0, nodes)
         main_window.add_slot(Settings.update_slot)
 
         Settings.timer.timeout.connect(Settings.update_slot.execute)
@@ -75,7 +82,7 @@ class Main:
 
         # Sign up to receive TimerEvent
         main_window.reset_camera_position()
-        main_window.renderer.SetActiveCamera(Settings.camera)
+        #main_window.renderer.SetActiveCamera(Settings.camera)
 
         sys.exit(app.exec_())
 

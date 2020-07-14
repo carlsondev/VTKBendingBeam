@@ -21,22 +21,23 @@ class MouseKeyboardInteractor(vtk.vtkInteractorStyleTrackballCamera):
         azi_step = 2
         ele_step = 2
         yaw_step = 0.5
+        camera = self.main_window.active_camera
         if self.GetInteractor().GetShiftKey():
             if key == "Left":
-                Settings.camera.Roll(-azi_step)
+                camera.Roll(-azi_step)
             if key == "Right":
-                Settings.camera.Roll(azi_step)
+                camera.Roll(azi_step)
             if key == "Up":
-                Settings.camera.Elevation(ele_step)
+                camera.Elevation(ele_step)
             if key == "Down":
-                Settings.camera.Elevation(-ele_step)
+                camera.Elevation(-ele_step)
         else:
             if key == "Left":
-                Settings.camera.Yaw(yaw_step)
+                camera.Yaw(yaw_step)
             if key == "Right":
-                Settings.camera.Yaw(-yaw_step)
+                camera.Yaw(-yaw_step)
             if key == "Up":
-                print(Settings.camera.GetOrientationWXYZ())
+                print(camera.GetOrientationWXYZ())
                 #Settings.camera.Elevation(ele_step)
             #if key == "Down":
                 #Settings.camera.Elevation(-ele_step)
@@ -93,15 +94,18 @@ class MouseKeyboardInteractor(vtk.vtkInteractorStyleTrackballCamera):
                         return
 
                     Settings.focalActor = self.new_actor
-                    Settings.update_slot.set_camera_pos_actor(Settings.positionActor, Settings.focalActor, Settings.camera)
+
+                    Settings.update_slot.set_camera_pos_actor(Settings.positionActor, Settings.focalActor)
                     self.main_window.attach_cam_label.setText("")
 
                 pos_center = Settings.positionActor.GetCenter()
                 focal_center = Settings.focalActor.GetCenter()
+                camera = self.main_window.active_camera
+
                 Settings.selecting_camera_index = 0
                 Settings.camera_is_attached = True
-                Settings.camera.SetPosition(np.add(pos_center, Settings.camera_delta_values))
-                Settings.camera.SetFocalPoint(focal_center)
+                camera.SetPosition(np.add(pos_center, Settings.camera_delta_values))
+                camera.SetFocalPoint(focal_center)
                 Settings.vtk_widget.GetRenderWindow().Render()
                 return
 
