@@ -59,6 +59,9 @@ class Node(object):
     def get_actor(self):
         return self.__actor
 
+    def get_poly_actor(self):
+        return self.__polygon_actor
+
     # Generates all node specific actors and adds to renderer
     def add_poly_actor_to_renderer(self, renderer, next_node, x_val, y_val):
         node_actor = self.get_actor()
@@ -269,9 +272,10 @@ class Node(object):
 
 
 class vtkUpdate:
-    def __init__(self, main_window, x_index, nodes):
+
+    def __init__(self, main_window, x_index):
         self.x_index = x_index
-        self.nodes = nodes
+        self.nodes = Settings.nodes
         self.main_window = main_window
         self.cam_position_actor = None
         self.cam_focal_actor = None

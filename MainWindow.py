@@ -3,6 +3,7 @@ from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from MouseKeyboardInteractor import MouseKeyboardInteractor
 import vtk
 import Settings
+from pyqtconsole.console import PythonConsole
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -108,6 +109,15 @@ class MainWindow(QtWidgets.QMainWindow):
         perspective_menu.addAction(xz_perspective)
         perspective_menu.addAction(iso_perspective)
 
+        console_menu = main_menu.addMenu('&Console')
+
+        console = QtWidgets.QAction("Show Console", self)
+        console.setStatusTip("Open Python Console")
+        console.triggered.connect(self.show_console)
+        console_menu.addAction(console)
+
+
+
     def display_pov_info_popup(self):
         msg_box = QtWidgets.QMessageBox()
         msg_box.setText("Can not set POV, attached to node\nDo you want to remove from node and change POV?")
@@ -135,6 +145,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return False
 
+    def show_console(self):
+        console = PythonConsole()
+        console.show()
+        console.eval_in_thread()
+        console.insert_input_text('\n', show_ps=False)
+        console.process_input("from ConsoleInterface import *\n")
 
     def set_xy_perspective(self):
         print("XY")

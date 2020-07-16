@@ -5,14 +5,15 @@ import numpy as np
 import vtk
 import math
 from beam import Main
+from MainWindow import MainWindow
 
 actors = defaultdict(list)
 
 # @ben: here are alternative mode coefficients you can try out:
 #       0.6 , 1.5,  2.5 , 3.5
 node_count = 21
+nodes = []
 x_vals = range(node_count)
-t_vals = np.linspace(0, 4 * math.pi, 40).tolist()
 t_val_step = (2 * math.pi) / 40
 current_t_val = 0
 
@@ -36,3 +37,4 @@ vtk_widget: QVTKRenderWindowInteractor
 
 update_slot = None
 shared_main = Main()
+main_window = None

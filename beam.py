@@ -13,7 +13,7 @@ class Main:
         self.__current_function = None
         self.__current_function_params = []
 
-    def set_current_function(self, function, default_params):
+    def set_current_function(self, function, default_params=[]):
         self.__current_function = function
         self.__current_function_params = default_params
 
@@ -24,12 +24,19 @@ class Main:
             print("Did not set param: param_index not in param array")
             return
     def eval_current_function(self, x_val, time):
-        return self.__current_function(x_val, time, self.__current_function_params)
+        try:
+            if len(self.__current_function_params) <= 0:
+                return self.__current_function(x_val, time)
+
+            return self.__current_function(x_val, time, self.__current_function_params)
+        except:
+            print("INVALID FUNCTION")
+            return 0
 
     def eval_func_for_xvals(self, x_vals, time):
         return_vals = []
         for x in x_vals:
-            return_vals.append(self.__current_function(x, time, self.__current_function_params))
+            return_vals.append(self.eval_current_function(x, time))
 
         return return_vals
 
@@ -71,41 +78,41 @@ class Main:
         ren_window.GetRenderers().GetFirstRenderer().GetActiveCamera()
 
     @staticmethod
-    def generate_vtk(t_vals, x):
+    def generate_vtk(x):
         N = len(x)
         N -= 1
 
         app = QtWidgets.QApplication(sys.argv)
-        main_window = MainWindow()
+        Settings.main_window = MainWindow()
         Settings.shared_main.set_current_function(Main.beam_deflection, [Settings.mode, Settings.omega])
 
         # bvtk.Node and bvtk.Line are custom objects to make reuse of mappings/actors
         # convenient and less messy.
-        nodes = [bvtk.Node() for i in range(N)]
+        Settings.nodes = [bvtk.Node() for i in range(N)]
 
         y = Settings.shared_main.eval_func_for_xvals(Settings.x_vals, 10) # grabbing an arbitrary time to create deflected beam state
         for i in range(N):
 
             if i < (N - 1):
                 # Updates position ahead of time to render next node height
-                nodes[i + 1].update_position(x[i + 1], y[i + 1], 0)
-                next_node = nodes[i + 1]
+                Settings.nodes[i + 1].update_position(x[i + 1], y[i + 1], 0)
+                next_node = Settings.nodes[i + 1]
             else:
-                next_node = nodes[i - 1]
+                next_node = Settings.nodes[i - 1]
 
             # Generates all node specific actors and adds to renderer
-            nodes[i].add_poly_actor_to_renderer(main_window.renderer, next_node, x[i], y[i])
+            Settings.nodes[i].add_poly_actor_to_renderer(Settings.main_window.renderer, next_node, x[i], y[i])
 
-        main_window.ren_window.Render()
+        Settings.main_window.ren_window.Render()
 
-        Settings.update_slot = bvtk.vtkUpdate(main_window, 0, nodes)
-        main_window.add_slot(Settings.update_slot)
+        Settings.update_slot = bvtk.vtkUpdate(Settings.main_window, 0)
+        Settings.main_window.add_slot(Settings.update_slot)
 
         Settings.timer.timeout.connect(Settings.update_slot.execute)
         Settings.timer.start(50)
 
         # Sign up to receive TimerEvent
-        main_window.reset_camera_position()
+        Settings.main_window.reset_camera_position()
         #main_window.renderer.SetActiveCamera(Settings.camera)
 
         sys.exit(app.exec_())
@@ -113,4 +120,4 @@ class Main:
 if __name__ == "__main__":
     # generate_plot(t_vals, x_vals)
 
-    Main.generate_vtk(Settings.t_vals, Settings.x_vals)
+    Main.generate_vtk(Settings.x_vals)
