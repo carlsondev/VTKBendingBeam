@@ -4,6 +4,7 @@ from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 import numpy as np
 import vtk
 import math
+from beam import Main
 
 actors = defaultdict(list)
 
@@ -34,3 +35,4 @@ timer = QtCore.QTimer()
 vtk_widget: QVTKRenderWindowInteractor
 
 update_slot = None
+shared_main = Main()

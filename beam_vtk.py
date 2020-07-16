@@ -2,6 +2,8 @@ import vtk
 import Settings
 import math
 from beam import Main
+import beam
+import numpy as np
 
 
 class Node(object):
@@ -107,7 +109,7 @@ class Node(object):
 
         # Non rendered last point
         next_node_x = Settings.x_vals[-1]
-        next_node_y = Main.beam_deflection(Settings.current_t_val)[next_node_x]
+        next_node_y = Settings.shared_main.eval_current_function(next_node_x, Settings.current_t_val)
 
         if nextNode is not None:
             next_node_x = nextNode.get_actor().GetCenter()[0]
@@ -136,7 +138,7 @@ class Node(object):
         node_y = node_center[1]
 
         next_node_x = Settings.x_vals[-1]
-        next_node_y = Main.beam_deflection(Settings.current_t_val)[next_node_x]
+        next_node_y = Settings.shared_main.eval_current_function(next_node_x, Settings.current_t_val)
 
         if next_node is not None:
             next_node_center = next_node.get_actor().GetCenter()
@@ -168,7 +170,7 @@ class Node(object):
         node_y = node_center[1]
 
         next_node_x = Settings.x_vals[-1]
-        next_node_y = Main.beam_deflection(Settings.current_t_val)[next_node_x]
+        next_node_y = Settings.shared_main.eval_current_function(next_node_x, Settings.current_t_val)
 
         if next_node is not None:
             next_node_center = next_node.get_actor().GetCenter()
@@ -277,10 +279,12 @@ class vtkUpdate:
         self.d_vals = [0, 0, 0]
 
     def set_mode(self, val):
-        Settings.mode = val
+        #Settings.mode = val
+        Settings.shared_main.set_function_param(0, val)
 
     def set_omega(self, val):
-        Settings.omega = val
+        #Settings.omega = val
+        Settings.shared_main.set_function_param(1, val)
 
     def set_camera_pos_actor(self, pos_actor, foc_actor):
         self.cam_position_actor = pos_actor
@@ -292,7 +296,7 @@ class vtkUpdate:
     def execute(self):
 
         i = self.x_index
-        y = Main.beam_deflection(Settings.current_t_val)
+        y = Settings.shared_main.eval_func_for_xvals(Settings.x_vals, Settings.current_t_val)
 
         for i in range(len(self.nodes)):
 
@@ -308,12 +312,16 @@ class vtkUpdate:
             node.update_polygon_position(y[i], next_node)
 
             camera = self.main_window.active_camera
+            is_offset = (np.linalg.norm(self.d_vals) != 0)
             if self.cam_position_actor is not None:
                 if self.cam_position_actor.GetCenter()[0] == i:
                     camera.SetPosition(i + self.d_vals[0], y[i] + self.d_vals[1], self.d_vals[2])
                     print("Camera Pos: ", camera.GetPosition())
                     print(i)
-            if self.cam_focal_actor is not None:
+                    if is_offset:
+                        camera.SetFocalPoint(i, y[i], 0)
+
+            if (self.cam_focal_actor is not None) and not is_offset:
                 if self.cam_focal_actor.GetCenter()[0] == i:
                     camera.SetFocalPoint(node.get_actor().GetCenter())
                     print("Camera Focal: ", camera.GetFocalPoint())
