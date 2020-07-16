@@ -21,3 +21,9 @@ def set_color(r, g, b):
 
 def set_function_param(param_index, value):
     Settings.shared_main.set_function_param(param_index, value)
+
+def set_camera_focal_point(x, y, z):
+    print("Set")
+
+def set_cam_focal_point(node):
+    Settings.main_window.active_camera

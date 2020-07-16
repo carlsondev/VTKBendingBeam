@@ -28,6 +28,9 @@ camera_delta_values = [0, 0, 0]
 
 # Index = 0: Not selecting, 1: Selecting Position, 2: Selecting Focal Point
 selecting_camera_index = 0
+cam_focal_index = None
+cam_pos_index = None
+
 focalActor: vtk.vtkActor
 positionActor: vtk.vtkActor
 

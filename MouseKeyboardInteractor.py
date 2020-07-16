@@ -72,17 +72,20 @@ class MouseKeyboardInteractor(vtk.vtkInteractorStyleTrackballCamera):
             self.new_actor.GetProperty().SetDiffuse(1.0)
             self.new_actor.GetProperty().SetSpecular(0.0)
 
+            selected_x = self.new_actor.GetCenter()[0]
+
             if Settings.attach_camera_to_node and not Settings.camera_is_attached:
                 Settings.selecting_camera_index += 1
                 if Settings.selecting_camera_index == 1:
                     # Adding Position Point
+                    Settings.cam_pos_index = selected_x
                     Settings.positionActor = self.new_actor
                     self.main_window.attach_cam_label.setText("Click node to set focal point")
                     return
 
                 if Settings.selecting_camera_index == 2:
                     # Adding Focal Point
-                    if self.new_actor == Settings.positionActor:
+                    if selected_x == Settings.cam_pos_index:
                         msg_box = QtWidgets.QMessageBox()
                         msg_box.setText("Can not select focal point at position node!")
                         msg_box.setIcon(QtWidgets.QMessageBox.Information)
@@ -93,9 +96,10 @@ class MouseKeyboardInteractor(vtk.vtkInteractorStyleTrackballCamera):
                         Settings.selecting_camera_index -= 1
                         return
 
+                    Settings.cam_focal_index = selected_x
                     Settings.focalActor = self.new_actor
 
-                    Settings.update_slot.set_camera_pos_actor(Settings.positionActor, Settings.focalActor)
+                    Settings.update_slot.set_camera_indicies(Settings.cam_pos_index, Settings.cam_focal_index)
                     self.main_window.attach_cam_label.setText("")
 
                 pos_center = Settings.positionActor.GetCenter()

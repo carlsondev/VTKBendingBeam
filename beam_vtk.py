@@ -277,8 +277,8 @@ class vtkUpdate:
         self.x_index = x_index
         self.nodes = Settings.nodes
         self.main_window = main_window
-        self.cam_position_actor = None
-        self.cam_focal_actor = None
+        self.cam_position_index = None
+        self.cam_focal_index = None
         self.camera = None
         self.d_vals = [0, 0, 0]
 
@@ -290,9 +290,9 @@ class vtkUpdate:
         #Settings.omega = val
         Settings.shared_main.set_function_param(1, val)
 
-    def set_camera_pos_actor(self, pos_actor, foc_actor):
-        self.cam_position_actor = pos_actor
-        self.cam_focal_actor = foc_actor
+    def set_camera_indicies(self, pos_idx, foc_idx):
+        self.cam_position_index = pos_idx
+        self.cam_focal_index = foc_idx
 
     def set_camera_delta_vals(self, deltas):
         self.d_vals = deltas
@@ -317,16 +317,15 @@ class vtkUpdate:
 
             camera = self.main_window.active_camera
             is_offset = (np.linalg.norm(self.d_vals) != 0)
-            if self.cam_position_actor is not None:
-                if self.cam_position_actor.GetCenter()[0] == i:
-                    camera.SetPosition(i + self.d_vals[0], y[i] + self.d_vals[1], self.d_vals[2])
-                    print("Camera Pos: ", camera.GetPosition())
-                    print(i)
-                    if is_offset:
-                        camera.SetFocalPoint(i, y[i], 0)
+            if self.cam_position_index == i:
+                camera.SetPosition(i + self.d_vals[0], y[i] + self.d_vals[1], self.d_vals[2])
+                print("Camera Pos: ", camera.GetPosition())
+                print(i)
+                if is_offset:
+                    camera.SetFocalPoint(i, y[i], 0)
 
-            if (self.cam_focal_actor is not None) and not is_offset:
-                if self.cam_focal_actor.GetCenter()[0] == i:
+            if not is_offset:
+                if self.cam_focal_index == i:
                     camera.SetFocalPoint(node.get_actor().GetCenter())
                     print("Camera Focal: ", camera.GetFocalPoint())
                     print(i)
