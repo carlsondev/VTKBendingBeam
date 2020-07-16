@@ -1,14 +1,36 @@
-import sys
-from threading import Thread
-from PyQt5.QtWidgets import QApplication
+"""An example of embedding a RichJupyterWidget with an in-process kernel.
+We recommend using a kernel in a separate process as the normal option - see
+embed_qtconsole.py for more information. In-process kernels are not well
+supported.
+To run this example:
+    python3 inprocess_qtconsole.py
+"""
 
-from pyqtconsole.console import PythonConsole
 
-app = QApplication([])
-console = PythonConsole()
-console.show()
-console.eval_in_thread()
-console.insert_input_text('\n', show_ps=False)
-console.process_input("from ConsoleInterface import *\n")
+from qtpy import QtWidgets
+from qtconsole.rich_jupyter_widget import RichJupyterWidget
+from qtconsole.inprocess import QtInProcessKernelManager
 
-sys.exit(app.exec_())
+
+def show():
+    global ipython_widget  # Prevent from being garbage collected
+
+    # Create an in-process kernel
+    kernel_manager = QtInProcessKernelManager()
+    kernel_manager.start_kernel(show_banner=False)
+    kernel = kernel_manager.kernel
+    kernel.gui = 'qt4'
+
+    kernel_client = kernel_manager.client()
+    kernel_client.start_channels()
+
+    ipython_widget = RichJupyterWidget()
+    ipython_widget.kernel_manager = kernel_manager
+    ipython_widget.kernel_client = kernel_client
+    ipython_widget.show()
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication([])
+    show()
+    app.exec_()

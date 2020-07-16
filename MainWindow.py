@@ -3,7 +3,8 @@ from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from MouseKeyboardInteractor import MouseKeyboardInteractor
 import vtk
 import Settings
-from pyqtconsole.console import PythonConsole
+from qtconsole.rich_jupyter_widget import RichJupyterWidget
+from qtconsole.inprocess import QtInProcessKernelManager
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -146,11 +147,23 @@ class MainWindow(QtWidgets.QMainWindow):
         return False
 
     def show_console(self):
-        console = PythonConsole()
-        console.show()
-        console.eval_in_thread()
-        console.insert_input_text('\n', show_ps=False)
-        console.process_input("from ConsoleInterface import *\n")
+        global ipython_widget  # Prevent from being garbage collected
+
+        # Create an in-process kernel
+        kernel_manager = QtInProcessKernelManager()
+        kernel_manager.start_kernel(show_banner=False)
+        kernel = kernel_manager.kernel
+        kernel.gui = 'qt4'
+
+        kernel_client = kernel_manager.client()
+        kernel_client.start_channels()
+
+        ipython_widget = RichJupyterWidget()
+        ipython_widget.kernel_manager = kernel_manager
+        ipython_widget.kernel_client = kernel_client
+        ipython_widget.show()
+
+        ipython_widget.append_stream("from ConsoleInterface import *\n")
 
     def set_xy_perspective(self):
         print("XY")

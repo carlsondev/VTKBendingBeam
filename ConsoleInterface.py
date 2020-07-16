@@ -22,8 +22,24 @@ def set_color(r, g, b):
 def set_function_param(param_index, value):
     Settings.shared_main.set_function_param(param_index, value)
 
+
 def set_camera_focal_point(x, y, z):
-    print("Set")
+    Settings.main_window.active_camera.SetFocalPoint(x, y, z)
+
 
 def set_cam_focal_point(node):
-    Settings.main_window.active_camera
+    node_center = node.get_actor().GetCenter()
+    Settings.main_window.active_camera.SetFocalPoint(node_center)
+
+
+def set_cam_position_node(node):
+    node_center = node.get_actor().GetCenter()
+    Settings.main_window.active_camera.SetPosition(node_center)
+
+
+def set_cam_position(x, y, z):
+    Settings.main_window.active_camera.SetPosition(x, y, z)
+
+
+def get_nodes():
+    return Settings.nodes
